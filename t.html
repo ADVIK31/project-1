@@ -1,0 +1,3415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CIVICMIND AI 3.0 | Cognitive Urban Governance & 3D Digital Twin</title>
+    
+    <!-- Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;700;800;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet GIS Map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Core External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --neon-teal: #67e8f9;
+            --neon-cyan: #38bdf8;
+            --neon-purple: #f0abfc;
+            --neon-violet: #a78bfa;
+            --neon-amber: #f59e0b;
+            --neon-emerald: #10b981;
+            --neon-red: #ff3366;
+            --deep-bg: #06050d;
+            --panel-bg: rgba(10, 8, 25, 0.75);
+            --glass-bg: rgba(255, 255, 255, 0.04);
+            --glass-card: rgba(14, 12, 32, 0.65);
+            --glass-border: rgba(103, 232, 249, 0.22);
+            --glass-border-hover: rgba(103, 232, 249, 0.55);
+            --text-main: #ffffff;
+            --text-dim: rgba(255, 255, 255, 0.65);
+            --text-muted: rgba(255, 255, 255, 0.4);
+            --glow-teal: 0 0 25px rgba(103, 232, 249, 0.35);
+            --glow-purple: 0 0 25px rgba(240, 171, 252, 0.35);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        html, body {
+            background-color: var(--deep-bg);
+            color: var(--text-main);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        /* Ambient scanline and chromatic grid overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            background: 
+                radial-gradient(ellipse at 50% 40%, rgba(42, 30, 78, 0.28), transparent 65%),
+                linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 40%, rgba(103, 232, 249, 0.02) 100%);
+            mix-blend-mode: screen;
+        }
+
+        /* 3D WebGL Canvas Layer */
+        #gl {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            z-index: 0;
+            transition: opacity 0.6s ease, filter 0.6s ease;
+        }
+
+        .orbitron { font-family: 'Orbitron', sans-serif; letter-spacing: 0.08em; }
+        .space-mono { font-family: 'Space Mono', monospace; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(6, 5, 13, 0.8); }
+        ::-webkit-scrollbar-thumb { background: rgba(103, 232, 249, 0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--neon-teal); }
+
+        /* Global High-Tech Top HUD */
+        #global-hud {
+            position: fixed;
+            top: 16px;
+            left: 20px;
+            right: 20px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 24px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 99px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), var(--glow-teal);
+        }
+
+        .hud-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            cursor: pointer;
+        }
+
+        .brand-core {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--neon-teal) 0%, #1e1b4b 70%);
+            border: 2px solid var(--neon-teal);
+            box-shadow: 0 0 16px var(--neon-teal);
+            animation: corePulse 3s infinite ease-in-out;
+            position: relative;
+        }
+
+        .brand-core::after {
+            content: '';
+            position: absolute;
+            inset: -5px;
+            border-radius: 50%;
+            border: 1px dashed rgba(103, 232, 249, 0.6);
+            animation: spinFast 10s linear infinite;
+        }
+
+        @keyframes corePulse {
+            0%, 100% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.1); filter: brightness(1.4); }
+        }
+
+        @keyframes spinFast { to { transform: rotate(360deg); } }
+
+        .brand-text h1 {
+            font-size: 1.05rem;
+            font-weight: 900;
+            background: linear-gradient(90deg, #fff, var(--neon-teal));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+        }
+
+        .brand-text span {
+            display: block;
+            font-size: 0.65rem;
+            color: var(--neon-purple);
+            font-family: 'Space Mono', monospace;
+            letter-spacing: 1px;
+        }
+
+        /* View Mode Switcher Pills */
+        .mode-switcher {
+            display: flex;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 4px;
+            border-radius: 99px;
+            border: 1px solid var(--glass-border);
+            gap: 4px;
+        }
+
+        .mode-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            padding: 7px 18px;
+            border-radius: 99px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mode-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(90deg, rgba(103, 232, 249, 0.25), rgba(240, 171, 252, 0.25));
+            color: #fff;
+            border: 1px solid var(--neon-teal);
+            box-shadow: 0 0 15px rgba(103, 232, 249, 0.35);
+        }
+
+        .hud-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .icon-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: 0.25s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .icon-btn:hover {
+            border-color: var(--neon-teal);
+            box-shadow: 0 0 12px rgba(103, 232, 249, 0.3);
+            background: rgba(103, 232, 249, 0.1);
+        }
+
+        .live-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.7rem;
+            color: var(--neon-emerald);
+            background: rgba(16, 185, 129, 0.12);
+            padding: 4px 10px;
+            border-radius: 99px;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            font-family: 'Space Mono', monospace;
+        }
+
+        .live-dot {
+            width: 7px;
+            height: 7px;
+            background: var(--neon-emerald);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--neon-emerald);
+            animation: livePulse 1.5s infinite;
+        }
+
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.3; transform: scale(0.8); }
+        }
+
+        /* ========================================================
+           3D DIGITAL TWIN FLIGHT VIEW (OVERLAYS)
+           ======================================================== */
+        #twin-view-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            transition: opacity 0.5s ease;
+        }
+
+        #track {
+            height: 1400vh;
+            pointer-events: none;
+        }
+
+        .twin-hud {
+            position: fixed;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        #hero-3d {
+            left: 5vw;
+            bottom: 12vh;
+            max-width: 70vw;
+            font: 900 clamp(38px, 8vw, 110px)/0.95 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            text-shadow: 0 0 40px rgba(103, 232, 249, 0.4);
+            will-change: transform, opacity;
+            transition: opacity 0.3s;
+        }
+
+        #hero-3d .eyebrow {
+            font: 400 11px/1.5 'Space Mono', monospace;
+            letter-spacing: 0.28em;
+            margin-bottom: 16px;
+            color: var(--neon-teal);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #hero-3d .eyebrow::before {
+            content: '';
+            display: inline-block;
+            width: 24px;
+            height: 2px;
+            background: var(--neon-teal);
+        }
+
+        #hero-3d p {
+            font: 400 13px/1.8 'Inter', sans-serif;
+            text-transform: none;
+            letter-spacing: 0.02em;
+            max-width: 440px;
+            margin-top: 20px;
+            color: var(--text-dim);
+            text-shadow: none;
+        }
+
+        #twin-metrics {
+            position: fixed;
+            left: 28px;
+            bottom: 34px;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 9px;
+            letter-spacing: 0.16em;
+            color: var(--text-dim);
+            font-family: 'Space Mono', monospace;
+            pointer-events: auto;
+            background: rgba(6, 5, 13, 0.6);
+            backdrop-filter: blur(10px);
+            padding: 10px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+        }
+
+        #twin-metrics strong {
+            color: var(--neon-teal);
+        }
+
+        #twin-chapter {
+            position: fixed;
+            right: 5vw;
+            bottom: 9vh;
+            z-index: 20;
+            text-align: right;
+            pointer-events: none;
+            font-size: 10px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-family: 'Space Mono', monospace;
+        }
+
+        #twin-chapter strong {
+            display: block;
+            color: #fff;
+            font: 800 clamp(18px, 2.5vw, 36px) 'Orbitron', sans-serif;
+            margin-top: 6px;
+            text-shadow: 0 0 20px rgba(240, 171, 252, 0.4);
+        }
+
+        #scroll-cue {
+            position: fixed;
+            z-index: 20;
+            left: 50%;
+            bottom: 24px;
+            transform: translateX(-50%);
+            font-size: 9px;
+            letter-spacing: 0.24em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.7);
+            font-family: 'Space Mono', monospace;
+            pointer-events: none;
+            text-align: center;
+        }
+
+        #scroll-cue::after {
+            content: '';
+            display: block;
+            width: 1px;
+            height: 32px;
+            margin: 8px auto 0;
+            background: linear-gradient(var(--neon-teal), transparent);
+            animation: scrollCueAnim 1.6s ease-in-out infinite;
+        }
+
+        @keyframes scrollCueAnim {
+            0%, 100% { transform: scaleY(0.4); opacity: 0.3; }
+            50% { transform: scaleY(1); opacity: 1; }
+        }
+
+        /* 3D Incident Node Hover Dossier */
+        #incident-hover-card {
+            position: fixed;
+            z-index: 30;
+            display: none;
+            pointer-events: auto;
+            max-width: 320px;
+            background: rgba(14, 12, 32, 0.92);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--neon-teal);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8), var(--glow-teal);
+            transform: translate(-50%, -120%);
+            transition: opacity 0.2s, transform 0.2s;
+        }
+
+        #incident-hover-card h4 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.88rem;
+            color: #fff;
+            margin-bottom: 6px;
+        }
+
+        #incident-hover-card p {
+            font-size: 0.76rem;
+            color: var(--text-dim);
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+
+        #progress-bar-3d {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            width: 0%;
+            background: linear-gradient(90deg, var(--neon-teal), var(--neon-purple));
+            box-shadow: 0 0 12px var(--neon-teal);
+            z-index: 100;
+        }
+
+        /* Quick 3D Station Nav Dots */
+        #station-nav {
+            position: fixed;
+            right: 28px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .station-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            border: 1px solid var(--neon-teal);
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .station-dot::after {
+            content: attr(data-label);
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 9px;
+            font-family: 'Space Mono', monospace;
+            white-space: nowrap;
+            color: var(--neon-teal);
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.2s;
+        }
+
+        .station-dot:hover::after { opacity: 1; transform: translateY(-50%) translateX(-4px); }
+        .station-dot.active {
+            background: var(--neon-teal);
+            box-shadow: 0 0 12px var(--neon-teal);
+            transform: scale(1.6);
+        }
+
+        /* ========================================================
+           COMMAND CENTER VIEW (GRID MATRIX & OPERATIONS)
+           ======================================================== */
+        #command-view-container {
+            display: none;
+            position: relative;
+            z-index: 50;
+            min-height: 100vh;
+            padding-top: 90px;
+            padding-bottom: 60px;
+            max-width: 1540px;
+            margin: 0 auto;
+            padding-left: 24px;
+            padding-right: 24px;
+        }
+
+        /* Command Sub-Nav Bar */
+        .command-subnav {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+            padding: 8px 4px;
+        }
+
+        .tab-btn {
+            background: var(--glass-card);
+            border: 1px solid var(--glass-border);
+            color: var(--text-dim);
+            padding: 10px 22px;
+            border-radius: 12px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.25s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+            backdrop-filter: blur(14px);
+        }
+
+        .tab-btn:hover {
+            color: #fff;
+            border-color: var(--neon-teal);
+            background: rgba(103, 232, 249, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .tab-btn.active {
+            color: #fff;
+            background: linear-gradient(135deg, rgba(103, 232, 249, 0.2), rgba(167, 139, 250, 0.2));
+            border-color: var(--neon-teal);
+            box-shadow: 0 0 20px rgba(103, 232, 249, 0.25);
+        }
+
+        /* Command View Sections */
+        .cmd-section {
+            display: none;
+            animation: fadeInSection 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .cmd-section.active {
+            display: block;
+        }
+
+        @keyframes fadeInSection {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Glassmorphism Cards */
+        .glass-panel {
+            background: var(--glass-card);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+            margin-bottom: 24px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-panel:hover {
+            border-color: var(--glass-border-hover);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 25px rgba(103, 232, 249, 0.12);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 14px;
+        }
+
+        .panel-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.15rem;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .panel-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            font-family: 'Space Mono', monospace;
+        }
+
+        /* KPI Metric Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+            margin-bottom: 24px;
+        }
+
+        .stat-box {
+            background: rgba(10, 8, 25, 0.6);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .stat-box:hover {
+            transform: translateY(-3px);
+            border-color: var(--neon-teal);
+            box-shadow: 0 10px 25px rgba(103, 232, 249, 0.15);
+        }
+
+        .stat-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            background: var(--neon-teal);
+        }
+
+        .stat-box.critical::before { background: var(--neon-red); }
+        .stat-box.success::before { background: var(--neon-emerald); }
+        .stat-box.warning::before { background: var(--neon-amber); }
+
+        .stat-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            font-family: 'Space Mono', monospace;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1.1;
+        }
+
+        .stat-delta {
+            font-size: 0.7rem;
+            color: var(--neon-emerald);
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* IoT Live Sensor Bar */
+        .sensor-ticker {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 12px;
+            background: rgba(6, 5, 13, 0.5);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 12px 18px;
+            margin-bottom: 24px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.72rem;
+        }
+
+        .sensor-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sensor-icon {
+            font-size: 1.1rem;
+        }
+
+        .sensor-data strong {
+            color: #fff;
+            display: block;
+            font-size: 0.8rem;
+        }
+
+        .sensor-data span {
+            color: var(--text-dim);
+            font-size: 0.68rem;
+        }
+
+        /* Forms & Inputs */
+        .form-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.76rem;
+            font-family: 'Space Mono', monospace;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 0.05em;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.88rem;
+            transition: all 0.25s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--neon-teal);
+            background: rgba(255, 255, 255, 0.07);
+            box-shadow: 0 0 15px rgba(103, 232, 249, 0.2);
+        }
+
+        select.form-control {
+            background-color: #0e0c20;
+            cursor: pointer;
+        }
+
+        select.form-control option {
+            background: #0e0c20;
+            color: #fff;
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+            border: none;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, var(--neon-teal), var(--neon-purple));
+            color: #06050d;
+            box-shadow: 0 4px 20px rgba(103, 232, 249, 0.35);
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 30px rgba(103, 232, 249, 0.55);
+            filter: brightness(1.1);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: var(--neon-teal);
+            color: var(--neon-teal);
+        }
+
+        /* AI Vision Scanner Component */
+        .vision-scanner-box {
+            background: rgba(14, 12, 32, 0.7);
+            border: 2px dashed var(--glass-border);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .vision-scanner-box.dragover {
+            border-color: var(--neon-teal);
+            background: rgba(103, 232, 249, 0.08);
+        }
+
+        .vision-preview-wrap {
+            position: relative;
+            max-width: 480px;
+            margin: 0 auto;
+            border-radius: 12px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .vision-preview-wrap img {
+            width: 100%;
+            height: 240px;
+            object-fit: cover;
+            display: block;
+            border-radius: 12px;
+        }
+
+        /* AI Laser Scanline */
+        .laser-scanline {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, var(--neon-teal), #fff, var(--neon-teal), transparent);
+            box-shadow: 0 0 15px var(--neon-teal), 0 0 30px var(--neon-cyan);
+            animation: scanLaser 2s infinite ease-in-out;
+            display: none;
+        }
+
+        @keyframes scanLaser {
+            0% { top: 0%; opacity: 0.8; }
+            50% { top: 96%; opacity: 1; }
+            100% { top: 0%; opacity: 0.8; }
+        }
+
+        .vision-hud-tag {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            background: rgba(6, 5, 13, 0.85);
+            border: 1px solid var(--neon-teal);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-family: 'Space Mono', monospace;
+            color: var(--neon-teal);
+        }
+
+        .sample-photos-strip {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 14px;
+            flex-wrap: wrap;
+        }
+
+        .sample-thumb {
+            width: 60px;
+            height: 46px;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+            overflow: hidden;
+            transition: 0.2s;
+            position: relative;
+        }
+
+        .sample-thumb:hover, .sample-thumb.active {
+            border-color: var(--neon-teal);
+            transform: scale(1.08);
+            box-shadow: 0 0 10px var(--neon-teal);
+        }
+
+        .sample-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Voice Dictation Button & Waveform */
+        .voice-dictation-wrap {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-top: 8px;
+        }
+
+        .voice-btn {
+            background: rgba(255, 51, 102, 0.12);
+            border: 1px solid rgba(255, 51, 102, 0.4);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Space Mono', monospace;
+            transition: 0.25s;
+        }
+
+        .voice-btn:hover, .voice-btn.recording {
+            background: rgba(255, 51, 102, 0.3);
+            border-color: var(--neon-red);
+            box-shadow: 0 0 15px rgba(255, 51, 102, 0.4);
+        }
+
+        .voice-wave {
+            display: none;
+            align-items: center;
+            gap: 3px;
+            height: 20px;
+        }
+
+        .wave-bar {
+            width: 3px;
+            height: 100%;
+            background: var(--neon-red);
+            border-radius: 2px;
+            animation: waveBounce 0.8s infinite ease-in-out;
+        }
+
+        .wave-bar:nth-child(2) { animation-delay: 0.15s; }
+        .wave-bar:nth-child(3) { animation-delay: 0.3s; }
+        .wave-bar:nth-child(4) { animation-delay: 0.45s; }
+
+        @keyframes waveBounce {
+            0%, 100% { height: 4px; }
+            50% { height: 18px; }
+        }
+
+        /* MAP CONTAINERS - Crucial Leaflet Fixes */
+        #submit-map {
+            height: 380px;
+            width: 100%;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            z-index: 10;
+        }
+
+        #tactical-map {
+            height: 560px;
+            width: 100%;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            z-index: 10;
+        }
+
+        #modal-map {
+            height: 200px;
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            margin-top: 10px;
+            z-index: 10;
+        }
+
+        .map-bar-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .coord-display {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--neon-teal);
+            background: rgba(6, 5, 13, 0.8);
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+        }
+
+        /* AI Cognitive Analysis Card */
+        .ai-result-panel {
+            background: linear-gradient(135deg, rgba(103, 232, 249, 0.06), rgba(240, 171, 252, 0.04));
+            border: 1px solid var(--neon-teal);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 0 25px rgba(103, 232, 249, 0.1);
+        }
+
+        .ai-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px dashed var(--glass-border);
+        }
+
+        .ai-meta-item strong {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .ai-meta-item span {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 99px;
+            font-size: 0.68rem;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .badge-critical { background: rgba(255, 51, 102, 0.15); color: #ff3366; border: 1px solid #ff3366; }
+        .badge-high { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid #f59e0b; }
+        .badge-medium { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid #38bdf8; }
+        .badge-low { background: rgba(255, 255, 255, 0.1); color: #ccc; border: 1px solid #888; }
+        .badge-resolved { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid #10b981; }
+
+        /* Tables */
+        .table-responsive {
+            overflow-x: auto;
+            width: 100%;
+        }
+
+        table.cyber-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        table.cyber-table th {
+            text-align: left;
+            padding: 14px 16px;
+            color: var(--text-dim);
+            font-family: 'Space Mono', monospace;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        table.cyber-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: #fff;
+            vertical-align: middle;
+        }
+
+        table.cyber-table tr:hover td {
+            background: rgba(103, 232, 249, 0.04);
+        }
+
+        /* Tracker Timeline Stepper */
+        .tracker-stepper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            margin: 40px 0;
+            padding: 0 20px;
+        }
+
+        .tracker-stepper::before {
+            content: '';
+            position: absolute;
+            top: 18px;
+            left: 40px;
+            right: 40px;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            z-index: 1;
+        }
+
+        .tracker-progress-line {
+            position: absolute;
+            top: 18px;
+            left: 40px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--neon-teal), var(--neon-purple));
+            box-shadow: 0 0 10px var(--neon-teal);
+            z-index: 2;
+            transition: width 0.6s ease;
+        }
+
+        .step-node {
+            position: relative;
+            z-index: 3;
+            text-align: center;
+        }
+
+        .step-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #0e0c20;
+            border: 2px solid var(--glass-border);
+            color: var(--text-dim);
+            display: grid;
+            place-items: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+            margin: 0 auto 10px;
+            transition: all 0.3s;
+        }
+
+        .step-node.completed .step-circle {
+            background: var(--neon-teal);
+            color: #000;
+            border-color: var(--neon-teal);
+            box-shadow: 0 0 15px var(--neon-teal);
+        }
+
+        .step-node.current .step-circle {
+            border-color: var(--neon-purple);
+            color: var(--neon-purple);
+            box-shadow: 0 0 15px var(--neon-purple);
+            animation: pulseCircle 1.8s infinite;
+        }
+
+        @keyframes pulseCircle {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        .step-label {
+            font-size: 0.72rem;
+            font-family: 'Space Mono', monospace;
+            color: var(--text-dim);
+        }
+
+        /* Modal Inspector */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(6, 5, 13, 0.85);
+            backdrop-filter: blur(16px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-card {
+            background: #0f0d24;
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            width: 100%;
+            max-width: 760px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 30px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), var(--glow-teal);
+            position: relative;
+            animation: modalPop 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalPop {
+            from { opacity: 0; transform: scale(0.94); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.08);
+            border: none;
+            color: #fff;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .modal-close-btn:hover { background: var(--neon-red); }
+
+        /* Floating AI Copilot Chat Drawer */
+        #copilot-drawer {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 380px;
+            height: 520px;
+            background: rgba(13, 11, 28, 0.95);
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--neon-teal);
+            border-radius: 20px;
+            z-index: 500;
+            display: none;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), var(--glow-teal);
+            overflow: hidden;
+            animation: slideUpCopilot 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUpCopilot {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .copilot-header {
+            padding: 14px 18px;
+            background: rgba(103, 232, 249, 0.1);
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .copilot-messages {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            font-size: 0.82rem;
+        }
+
+        .chat-bubble {
+            padding: 10px 14px;
+            border-radius: 12px;
+            max-width: 85%;
+            line-height: 1.5;
+        }
+
+        .chat-bubble.bot {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+            align-self: flex-start;
+        }
+
+        .chat-bubble.user {
+            background: linear-gradient(90deg, rgba(103, 232, 249, 0.25), rgba(240, 171, 252, 0.25));
+            border: 1px solid var(--neon-teal);
+            color: #fff;
+            align-self: flex-end;
+        }
+
+        .copilot-input-bar {
+            padding: 12px;
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        /* Responsive Media Queries */
+        @media (max-width: 900px) {
+            #global-hud { left: 10px; right: 10px; padding: 8px 14px; }
+            .brand-text h1 { font-size: 0.9rem; }
+            .mode-btn { padding: 6px 12px; font-size: 0.65rem; }
+            .form-grid-2 { grid-template-columns: 1fr; }
+            #hero-3d { left: 6vw; bottom: 8vh; max-width: 88vw; }
+            #command-view-container { padding-left: 14px; padding-right: 14px; }
+            #copilot-drawer { width: calc(100vw - 30px); right: 15px; bottom: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 3D Three.js WebGL Canvas -->
+    <canvas id="gl"></canvas>
+
+    <!-- Global Persistent Cyber HUD Bar -->
+    <header id="global-hud">
+        <div class="hud-brand" onclick="app.setMode('twin')">
+            <div class="brand-core"></div>
+            <div class="brand-text">
+                <h1 class="orbitron">CIVICMIND 3.0</h1>
+                <span>NEURAL URBAN GOVERNANCE</span>
+            </div>
+        </div>
+
+        <!-- Mode Switcher -->
+        <div class="mode-switcher">
+            <button class="mode-btn active" id="btn-mode-twin" onclick="app.setMode('twin')">
+                <span>🌌</span> 3D DIGITAL TWIN
+            </button>
+            <button class="mode-btn" id="btn-mode-cmd" onclick="app.setMode('command')">
+                <span>⚡</span> COMMAND MATRIX
+            </button>
+        </div>
+
+        <!-- Utility Actions -->
+        <div class="hud-actions">
+            <div class="live-badge">
+                <span class="live-dot"></span>
+                <span>GRID ONLINE</span>
+            </div>
+            <button class="icon-btn" id="btn-sfx-toggle" onclick="soundEngine.toggle()" title="Toggle Web Audio Synthesizer">
+                <span id="sfx-icon">🔊</span> SFX ON
+            </button>
+            <button class="icon-btn" onclick="app.openCopilot()" title="AI Urban Assistant">
+                <span>🤖</span> AI COPILOT
+            </button>
+        </div>
+    </header>
+
+    <!-- ========================================================
+         VIEW 1: 3D DIGITAL TWIN EXPERIENCE (Full Three.js WebGL)
+         ======================================================== -->
+    <div id="twin-view-container">
+        <!-- Scroll Track for Smooth Flight Through City -->
+        <div id="track"></div>
+
+        <!-- Floating Kinetic Typography -->
+        <div id="hero-3d" class="twin-hud">
+            <div class="eyebrow">COGNITIVE URBAN INTELLIGENCE · 3D TWIN</div>
+            <h1>A Living<br><span style="color:var(--neon-teal)">Digital</span><br>Metropolis.</h1>
+            <p>Real-time autonomous threat detection, high-precision geospatial triage, and neural infrastructure coordination across the city grid.</p>
+        </div>
+
+        <div id="twin-metrics">
+            <div>SECTOR: <strong>DOWNTOWN-CENTRAL 01</strong></div>
+            <div>CAMERA ALT: <strong id="cam-alt">82.4m</strong></div>
+            <div>GRID VELOCITY: <strong id="cam-vel">0.00 km/h</strong></div>
+            <div>TELEMETRY SYNC: <strong id="sync-pct">100%</strong></div>
+        </div>
+
+        <div id="twin-chapter">
+            ACTIVE GRID STATION
+            <strong id="twin-station-name">NEURAL CORE NEXUS</strong>
+        </div>
+
+        <div id="scroll-cue">Scroll to Fly Through Grid</div>
+
+        <div id="progress-bar-3d"></div>
+
+        <!-- Station Navigation Dots on Right Margin -->
+        <div id="station-nav">
+            <button class="station-dot active" data-label="Station 01: Core" onclick="app.jumpToStation(0)"></button>
+            <button class="station-dot" data-label="Station 02: Infra Spine" onclick="app.jumpToStation(1)"></button>
+            <button class="station-dot" data-label="Station 03: Water Corridor" onclick="app.jumpToStation(2)"></button>
+            <button class="station-dot" data-label="Station 04: Power Grid" onclick="app.jumpToStation(3)"></button>
+            <button class="station-dot" data-label="Station 05: Transit Nexus" onclick="app.jumpToStation(4)"></button>
+            <button class="station-dot" data-label="Station 06: Bio-Zone" onclick="app.jumpToStation(5)"></button>
+            <button class="station-dot" data-label="Station 07: Hazard Sector" onclick="app.jumpToStation(6)"></button>
+            <button class="station-dot" data-label="Station 08: Terminal Portal" onclick="app.jumpToStation(7)"></button>
+        </div>
+
+        <!-- 3D Incident Floating Card (on Raycast hit) -->
+        <div id="incident-hover-card">
+            <span class="badge badge-critical" id="hover-badge">CRITICAL</span>
+            <h4 id="hover-title" style="margin-top:8px;">Pipe Burst Detected</h4>
+            <p id="hover-desc">High risk hydro-damage in progress.</p>
+            <button class="btn btn-primary" style="padding: 6px 14px; font-size: 0.72rem; width:100%;" onclick="app.inspectHovered()">Inspect in Command Matrix →</button>
+        </div>
+    </div>
+
+    <!-- ========================================================
+         VIEW 2: COMMAND MATRIX (Governance & Operations)
+         ======================================================== -->
+    <main id="command-view-container">
+        <!-- Sub-Navigation Bar -->
+        <div class="command-subnav">
+            <button class="tab-btn active" onclick="app.switchTab('overview')">📊 Overview Grid</button>
+            <button class="tab-btn" onclick="app.switchTab('submit')">🛰️ Report Incident</button>
+            <button class="tab-btn" onclick="app.switchTab('map-explorer')">🎯 Tactical GPS Map</button>
+            <button class="tab-btn" onclick="app.switchTab('track')">🔍 Status Tracker</button>
+            <button class="tab-btn" onclick="app.switchTab('admin')">⚙️ Admin Command</button>
+            <button class="tab-btn" onclick="app.switchTab('analytics')">📈 Cognitive Analytics</button>
+        </div>
+
+        <!-- Section 1: Overview Grid -->
+        <section id="tab-overview" class="cmd-section active">
+            <!-- IoT Realtime Sensor Bar -->
+            <div class="sensor-ticker">
+                <div class="sensor-item">
+                    <span class="sensor-icon">🌿</span>
+                    <div class="sensor-data">
+                        <strong id="sensor-aqi">38 AQI · Optimal</strong>
+                        <span>Air Quality Sensor #04</span>
+                    </div>
+                </div>
+                <div class="sensor-item">
+                    <span class="sensor-icon">⚡</span>
+                    <div class="sensor-data">
+                        <strong id="sensor-power">99.8% Load · Stable</strong>
+                        <span>Metropolitan Substation</span>
+                    </div>
+                </div>
+                <div class="sensor-item">
+                    <span class="sensor-icon">💧</span>
+                    <div class="sensor-data">
+                        <strong id="sensor-water">4.2 Bar · Normal</strong>
+                        <span>Water Network Telemetry</span>
+                    </div>
+                </div>
+                <div class="sensor-item">
+                    <span class="sensor-icon">🚦</span>
+                    <div class="sensor-data">
+                        <strong id="sensor-traffic">Low Congestion (12ms)</strong>
+                        <span>Autonomous Transit Grid</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPI Metric Cards -->
+            <div class="stats-grid" id="stats-kpi-container">
+                <!-- Dynamically populated -->
+            </div>
+
+            <div class="glass-panel">
+                <div class="panel-header">
+                    <div>
+                        <h3 class="panel-title"><span>⚡</span> Priority Triage Incident Queue</h3>
+                        <div class="panel-subtitle">Autonomous Real-Time AI Threat Assessment</div>
+                    </div>
+                    <button class="btn btn-secondary" style="font-size: 0.72rem; padding: 6px 14px;" onclick="app.switchTab('submit')">+ New Report</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="cyber-table">
+                        <thead>
+                            <tr>
+                                <th>Incident ID</th>
+                                <th>Title & Sector</th>
+                                <th>Category</th>
+                                <th>AI Threat Score</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="overview-tbody">
+                            <!-- Dynamically populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Submit Incident (With AI Vision, Voice, Exact GPS Map) -->
+        <section id="tab-submit" class="cmd-section">
+            <div class="glass-panel" style="max-width: 1000px; margin: 0 auto;">
+                <div class="panel-header">
+                    <div>
+                        <h3 class="panel-title"><span>🛰️</span> File Incident Report with Cognitive AI</h3>
+                        <div class="panel-subtitle">Multi-Vector Neural Analysis · Computer Vision · Exact GPS Pinning</div>
+                    </div>
+                    <button class="btn btn-secondary" style="font-size: 0.7rem; padding: 6px 12px;" onclick="app.populateDemoForm()">⚡ Auto-Fill Demo Hazard</button>
+                </div>
+
+                <!-- AI Computer Vision Scanner Box -->
+                <div class="vision-scanner-box" id="vision-dropzone">
+                    <div id="vision-idle-state">
+                        <div style="font-size: 2.2rem; margin-bottom: 8px;">📷</div>
+                        <h4 class="orbitron" style="font-size: 0.95rem; margin-bottom: 6px;">AI Vision Hazard Scanner</h4>
+                        <p style="font-size: 0.78rem; color: var(--text-dim); margin-bottom: 12px;">Drop damage photo, upload from disk, or select test sample below:</p>
+                        <input type="file" id="vision-file-input" accept="image/*" style="display:none;" onchange="app.handleImageUpload(event)">
+                        <button type="button" class="btn btn-secondary" style="font-size: 0.75rem;" onclick="document.getElementById('vision-file-input').click()">Upload Evidence Image</button>
+                    </div>
+
+                    <!-- Scan preview with animated laser line -->
+                    <div class="vision-preview-wrap" id="vision-preview-wrap">
+                        <img id="vision-preview-img" src="" alt="Evidence Scan">
+                        <div class="laser-scanline" id="laser-line"></div>
+                        <div class="vision-hud-tag" id="vision-hud-tag">ANALYZING...</div>
+                    </div>
+
+                    <!-- Quick Sample Evidence Thumbnails -->
+                    <div class="sample-photos-strip">
+                        <span style="font-size:0.7rem; color:var(--text-muted); align-self:center; font-family:'Space Mono';">Sample Evidence:</span>
+                        <div class="sample-thumb" onclick="app.loadSampleImage('crack')" title="Bridge Fracture">
+                            <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='80' viewBox='0 0 100 80'><rect width='100' height='80' fill='%23222'/><path d='M10 70 L30 45 L25 35 L50 20 L45 10' stroke='%23ff3366' stroke-width='4' fill='none'/><text x='10' y='75' fill='%23fff' font-size='10'>Crack</text></svg>" alt="Crack">
+                        </div>
+                        <div class="sample-thumb" onclick="app.loadSampleImage('pipe')" title="Water Burst">
+                            <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='80' viewBox='0 0 100 80'><rect width='100' height='80' fill='%23112233'/><circle cx='50' cy='40' r='20' fill='%2338bdf8' opacity='0.7'/><text x='10' y='75' fill='%23fff' font-size='10'>Burst</text></svg>" alt="Burst">
+                        </div>
+                        <div class="sample-thumb" onclick="app.loadSampleImage('wire')" title="Sparks/Wire">
+                            <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='80' viewBox='0 0 100 80'><rect width='100' height='80' fill='%23221122'/><path d='M20 20 L50 40 L30 50 L80 70' stroke='%23f59e0b' stroke-width='3' fill='none'/><text x='10' y='75' fill='%23fff' font-size='10'>Power</text></svg>" alt="Power">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Content -->
+                <form id="incident-form" onsubmit="app.submitIncident(event)">
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label>Incident Headline</label>
+                            <input type="text" id="inc-title" class="form-control" placeholder="e.g. Structural Fissure in Overpass Segment" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Urban Category</label>
+                            <select id="inc-category" class="form-control" required onchange="app.triggerRealtimeAIPreview()">
+                                <option value="Structural & Roads">Structural & Roads</option>
+                                <option value="Water & Sewage">Water & Sewage Network</option>
+                                <option value="Power & Electrical Grid">Power & Electrical Grid</option>
+                                <option value="Sanitation & Hazardous Waste">Sanitation & Hazmat</option>
+                                <option value="Public Safety & Hazards">Public Safety & Hazards</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Detailed Incident Narrative (Neural Semantic Processing)</label>
+                        <textarea id="inc-desc" class="form-control" placeholder="Describe environmental factors, risk to civilians, leaks, sparks, collapse probability..." required oninput="app.triggerRealtimeAIPreview()"></textarea>
+                        
+                        <!-- Voice Dictation Tool -->
+                        <div class="voice-dictation-wrap">
+                            <button type="button" class="voice-btn" id="voice-record-btn" onclick="app.toggleVoiceDictation()">
+                                <span>🎙️</span> <span id="voice-btn-text">Voice Dictation</span>
+                            </button>
+                            <div class="voice-wave" id="voice-wave">
+                                <span class="wave-bar"></span>
+                                <span class="wave-bar"></span>
+                                <span class="wave-bar"></span>
+                                <span class="wave-bar"></span>
+                            </div>
+                            <span style="font-size: 0.72rem; color: var(--text-dim);" id="voice-status-text">Click to speak naturally to AI assistant.</span>
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label>Citizen Perceived Urgency</label>
+                            <select id="inc-urgency" class="form-control" required onchange="app.triggerRealtimeAIPreview()">
+                                <option value="Low">Low - Cosmetic or Non-Urgent</option>
+                                <option value="Medium" selected>Medium - Disruptive Activity</option>
+                                <option value="High">High - Escalating Risk or Road Block</option>
+                                <option value="Critical">Critical - Immediate Threat to Life/Infra</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Address / Zone Landmark</label>
+                            <input type="text" id="inc-location-name" class="form-control" placeholder="e.g. 5th Avenue & Grand Cyber Plaza" required>
+                        </div>
+                    </div>
+
+                    <!-- EXACT MAP GEOLOCATION PICKER -->
+                    <div class="form-group">
+                        <div class="map-bar-controls">
+                            <label style="margin: 0;">Exact Geospatial Coordinates (Click map to pin)</label>
+                            <div style="display:flex; gap:8px;">
+                                <button type="button" class="icon-btn" onclick="app.locateExactUserGPS()">
+                                    <span>📍</span> Locate My GPS Position
+                                </button>
+                                <div class="coord-display" id="submit-coords-display">LAT: 40.7128° N | LNG: -74.0060° W</div>
+                            </div>
+                        </div>
+                        
+                        <div id="submit-map"></div>
+                        <input type="hidden" id="inc-lat" value="40.7128">
+                        <input type="hidden" id="inc-lng" value="-74.0060">
+                    </div>
+
+                    <!-- Real-Time AI Assessment Live Preview -->
+                    <div class="ai-result-panel" id="ai-live-preview">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="orbitron" style="font-size: 0.85rem; color: var(--neon-teal);">⚡ CognitiveAI 3.0 Live Analysis</span>
+                                <span class="live-dot"></span>
+                            </div>
+                            <span class="badge badge-medium" id="preview-priority-badge">PREDICTED: MEDIUM</span>
+                        </div>
+                        <div class="ai-meta-grid">
+                            <div class="ai-meta-item">
+                                <strong>Calculated Risk Score</strong>
+                                <span id="preview-risk-score" style="color:var(--neon-teal)">48 / 100</span>
+                            </div>
+                            <div class="ai-meta-item">
+                                <strong>Target Department</strong>
+                                <span id="preview-dept">Infra Maintenance</span>
+                            </div>
+                            <div class="ai-meta-item">
+                                <strong>Predicted SLA</strong>
+                                <span id="preview-sla">Within 4 Hours</span>
+                            </div>
+                        </div>
+                        <p id="preview-reasoning" style="font-size: 0.78rem; color: var(--text-dim); margin-top: 10px; font-style: italic;">
+                            Awaiting detailed description...
+                        </p>
+                    </div>
+
+                    <div style="margin-top: 24px; display: flex; gap: 14px;">
+                        <button type="submit" class="btn btn-primary" style="flex: 2;">Dispatch Incident to Neural Grid →</button>
+                        <button type="reset" class="btn btn-secondary" style="flex: 1;">Reset</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- Section 3: Tactical GPS Map Explorer -->
+        <section id="tab-map-explorer" class="cmd-section">
+            <div class="glass-panel">
+                <div class="panel-header">
+                    <div>
+                        <h3 class="panel-title"><span>🎯</span> Tactical Geospatial Grid Radar</h3>
+                        <div class="panel-subtitle">Interactive Metropolitan Coordinates & Active Hazard Concentrations</div>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="icon-btn" onclick="app.filterMapMarkers('all')">All Incidents</button>
+                        <button class="icon-btn" onclick="app.filterMapMarkers('Critical')">🔴 Critical Only</button>
+                        <button class="icon-btn" onclick="app.filterMapMarkers('High')">🟠 High Only</button>
+                        <button class="icon-btn" onclick="app.locateExactUserGPS(true)">📍 Fly to My Position</button>
+                    </div>
+                </div>
+
+                <div id="tactical-map"></div>
+            </div>
+        </section>
+
+        <!-- Section 4: Status Tracker -->
+        <section id="tab-track" class="cmd-section">
+            <div class="glass-panel" style="max-width: 800px; margin: 0 auto;">
+                <div class="panel-header">
+                    <div>
+                        <h3 class="panel-title"><span>🔍</span> Real-Time Incident Status Tracker</h3>
+                        <div class="panel-subtitle">Verify Multi-Stage Neural Dispatch & Resolution Velocity</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-bottom: 24px;">
+                    <input type="text" id="track-input-id" class="form-control" placeholder="Enter Incident ID (e.g. CIV-101 or CIV-8824)" style="font-family:'Space Mono'; font-size:1.05rem;">
+                    <button class="btn btn-primary" onclick="app.trackIncident()">Query Grid</button>
+                </div>
+
+                <div id="track-result-container">
+                    <!-- Populated by JS -->
+                    <div style="text-align:center; padding: 40px; color: var(--text-muted); font-family: 'Space Mono';">
+                        Enter an incident code above or select one from the Overview Grid.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: Admin Command Center -->
+        <section id="tab-admin" class="cmd-section">
+            <div class="glass-panel">
+                <div class="panel-header">
+                    <div>
+                        <h3 class="panel-title"><span>⚙️</span> Metropolitan Administrative Command Grid</h3>
+                        <div class="panel-subtitle">Field Dispatching · Triage Management · Resource Allocation</div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-secondary" style="font-size: 0.72rem; padding: 6px 14px;" onclick="app.exportDatabase()">📥 Export JSON Dossier</button>
+                        <button class="btn btn-secondary" style="font-size: 0.72rem; padding: 6px 14px;" onclick="app.resetDemoData()">🔄 Reset Demo Data</button>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; margin-bottom: 20px;">
+                    <input type="text" id="admin-search-input" class="form-control" placeholder="Filter by ID, Title, Sector, or Keyword..." onkeyup="app.filterAdminTable()">
+                    <select id="admin-filter-category" class="form-control" onchange="app.filterAdminTable()">
+                        <option value="ALL">All Categories</option>
+                        <option value="Structural & Roads">Structural & Roads</option>
+                        <option value="Water & Sewage">Water & Sewage</option>
+                        <option value="Power & Electrical Grid">Power & Electrical</option>
+                        <option value="Sanitation & Hazardous Waste">Sanitation & Hazmat</option>
+                        <option value="Public Safety & Hazards">Public Safety</option>
+                    </select>
+                    <select id="admin-filter-status" class="form-control" onchange="app.filterAdminTable()">
+                        <option value="ALL">All Statuses</option>
+                        <option value="Submitted">Submitted</option>
+                        <option value="AI Triaged">AI Triaged</option>
+                        <option value="Unit Dispatched">Unit Dispatched</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved">Resolved</option>
+                    </select>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="cyber-table">
+                        <thead>
+                            <tr>
+                                <th>Incident ID</th>
+                                <th>Headline</th>
+                                <th>Assigned Unit</th>
+                                <th>AI Severity</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-tbody">
+                            <!-- Dynamically populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 6: Cognitive Analytics -->
+        <section id="tab-analytics" class="cmd-section">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+                <div class="glass-panel">
+                    <div class="panel-header">
+                        <h4 class="panel-title" style="font-size: 0.95rem;"><span>📊</span> Category Threat Distribution</h4>
+                    </div>
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="chart-categories"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel">
+                    <div class="panel-header">
+                        <h4 class="panel-title" style="font-size: 0.95rem;"><span>⚡</span> Resolution Workflow Pipeline</h4>
+                    </div>
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="chart-status"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel">
+                <div class="panel-header">
+                    <h4 class="panel-title" style="font-size: 0.95rem;"><span>📈</span> Mean Resolution Velocity by Threat Tier</h4>
+                    <div class="panel-subtitle">Calculated via Autonomous Dispatch Engine</div>
+                </div>
+                <div style="height: 240px; position: relative;">
+                    <canvas id="chart-velocity"></canvas>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ========================================================
+         MODAL: DETAILED INCIDENT INSPECTION & ACTION
+         ======================================================== -->
+    <div class="modal-overlay" id="inspect-modal">
+        <div class="modal-card">
+            <button class="modal-close-btn" onclick="app.closeModal()">✕</button>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                <span class="badge badge-critical" id="modal-priority-badge">CRITICAL</span>
+                <span style="font-family:'Space Mono'; font-size:0.75rem; color:var(--text-muted);" id="modal-date">DATE</span>
+            </div>
+            
+            <h2 class="orbitron" id="modal-title" style="font-size: 1.4rem; margin-bottom: 8px;">Incident Title</h2>
+            <div style="font-family:'Space Mono'; color:var(--neon-teal); font-size:0.8rem; margin-bottom: 16px;" id="modal-id">ID: CIV-101</div>
+
+            <p id="modal-desc" style="color:var(--text-dim); line-height:1.6; margin-bottom: 20px;">Description text...</p>
+
+            <div class="form-grid-2" style="margin-bottom: 20px;">
+                <div class="glass-panel" style="padding: 16px; margin: 0;">
+                    <strong style="display:block; font-size:0.7rem; font-family:'Space Mono'; color:var(--text-muted); text-transform:uppercase;">Geospatial Sector</strong>
+                    <div id="modal-location" style="font-size:0.95rem; font-weight:600; margin-top:4px;">Location</div>
+                    <div id="modal-map"></div>
+                </div>
+
+                <div class="glass-panel" style="padding: 16px; margin: 0;">
+                    <strong style="display:block; font-size:0.7rem; font-family:'Space Mono'; color:var(--text-muted); text-transform:uppercase;">AI Diagnostic Dossier</strong>
+                    <div style="margin-top: 10px;">
+                        <div style="font-size: 0.8rem; margin-bottom: 6px;">Risk Index: <strong id="modal-risk-score" style="color:var(--neon-teal)">92/100</strong></div>
+                        <div style="font-size: 0.8rem; margin-bottom: 6px;">Dept Routing: <strong id="modal-dept">Hazmat & Structural</strong></div>
+                        <div style="font-size: 0.78rem; color:var(--neon-teal); font-style:italic; margin-top: 10px;" id="modal-reasoning">Reasoning...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Dispatch Action Form -->
+            <div style="border-top: 1px solid var(--glass-border); padding-top: 20px;">
+                <h4 class="orbitron" style="font-size: 0.95rem; margin-bottom: 14px;">Admin Field Action Dispatch</h4>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Update Status</label>
+                        <select id="modal-status-select" class="form-control">
+                            <option value="Submitted">Submitted</option>
+                            <option value="AI Triaged">AI Triaged</option>
+                            <option value="Unit Dispatched">Unit Dispatched</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Resolved">Resolved</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Assigned Response Crew</label>
+                        <select id="modal-crew-select" class="form-control">
+                            <option value="Crew Alpha-1 (Emergency Hazmat)">Crew Alpha-1 (Emergency Hazmat)</option>
+                            <option value="Crew Beta-4 (Heavy Civil Repairs)">Crew Beta-4 (Heavy Civil Repairs)</option>
+                            <option value="Crew Delta-9 (High Voltage Power)">Crew Delta-9 (High Voltage Power)</option>
+                            <option value="Crew Gamma-2 (Sanitation & Water)">Crew Gamma-2 (Sanitation & Water)</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-primary" style="width: 100%;" onclick="app.saveModalChanges()">Save Changes & Broadcast Dispatch →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================
+         AI COPILOT SLIDE-OUT DRAWER
+         ======================================================== -->
+    <div id="copilot-drawer">
+        <div class="copilot-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:1.2rem;">🤖</span>
+                <strong class="orbitron" style="font-size:0.82rem;">CIVICMIND AI COPILOT</strong>
+            </div>
+            <button style="background:transparent; border:none; color:#fff; cursor:pointer;" onclick="app.closeCopilot()">✕</button>
+        </div>
+        <div class="copilot-messages" id="copilot-messages">
+            <div class="chat-bubble bot">
+                Greetings, Operative. I am your Neural Urban Intelligence Assistant. You can ask me to summarize current city hazards, calculate emergency protocols, or analyze infrastructure vulnerabilities.
+            </div>
+        </div>
+        <div class="copilot-input-bar">
+            <input type="text" id="copilot-input" class="form-control" placeholder="Ask AI assistant..." style="padding:8px 12px; font-size:0.8rem;" onkeypress="if(event.key==='Enter') app.sendCopilotMessage()">
+            <button class="btn btn-primary" style="padding:8px 14px; font-size:0.75rem;" onclick="app.sendCopilotMessage()">Send</button>
+        </div>
+    </div>
+
+    <!-- ========================================================
+         JAVASCRIPT ENGINES (Sound, 3D WebGL, AI, Maps, App)
+         ======================================================== -->
+    <script>
+        /**
+         * 1. WEB AUDIO SYNTHESIZER SOUND ENGINE
+         * Native Web Audio API sounds (clicks, pings, alarms, scans) with zero external dependencies
+         */
+        class SoundEngine {
+            constructor() {
+                this.enabled = true;
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            toggle() {
+                this.enabled = !this.enabled;
+                const icon = document.getElementById('sfx-icon');
+                const btn = document.getElementById('btn-sfx-toggle');
+                if (this.enabled) {
+                    icon.textContent = '🔊';
+                    btn.innerHTML = `<span id="sfx-icon">🔊</span> SFX ON`;
+                    this.playPing();
+                } else {
+                    icon.textContent = '🔇';
+                    btn.innerHTML = `<span id="sfx-icon">🔇</span> SFX OFF`;
+                }
+            }
+
+            playClick() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(300, this.ctx.currentTime + 0.05);
+                    gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.05);
+                } catch(e) {}
+            }
+
+            playPing() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(587.33, this.ctx.currentTime); // D5
+                    osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.18); // A5
+                    gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.35);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.35);
+                } catch(e) {}
+            }
+
+            playAlert() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(350, this.ctx.currentTime);
+                    osc.frequency.setValueAtTime(650, this.ctx.currentTime + 0.1);
+                    osc.frequency.setValueAtTime(350, this.ctx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.3);
+                } catch(e) {}
+            }
+
+            playScan() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1400, this.ctx.currentTime + 0.4);
+                    gain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.4);
+                } catch(e) {}
+            }
+        }
+        const soundEngine = new SoundEngine();
+
+        /**
+         * 2. COGNITIVE AI 3.0 MULTI-VECTOR TRIAGE ENGINE
+         * Natural Language Processing, Risk Matrix, Cluster Spatial Anomaly Detection
+         */
+        class CognitiveAI3 {
+            static analyze(complaint, allComplaints = []) {
+                const text = ((complaint.title || '') + ' ' + (complaint.desc || '')).toLowerCase();
+                const userSev = complaint.urgency || complaint.sev || 'Medium';
+                const cat = complaint.cat || complaint.category || 'Structural & Roads';
+
+                // 1. Hazard Keyword Vector scoring
+                const riskVectors = {
+                    critical: ['collapse', 'death', 'casualty', 'sparks', 'fire', 'electric', 'explosion', 'immediate', 'sinkhole', 'gas leak', 'toxic', 'rupture'],
+                    high: ['accident', 'severed', 'injury', 'flood', 'burst', 'crack', 'hazardous', 'exposed', 'overflow', 'failing', 'danger'],
+                    medium: ['blockage', 'smell', 'delay', 'pothole', 'broken', 'disruption', 'malfunction', 'leak', 'fault'],
+                    low: ['cosmetic', 'paint', 'cleaning', 'litter', 'routine', 'faded', 'minor']
+                };
+
+                let riskScore = 0;
+                let reasons = [];
+
+                // Critical match
+                const critMatches = riskVectors.critical.filter(w => text.includes(w));
+                if (critMatches.length > 0) {
+                    riskScore += 45;
+                    reasons.push(`High hazard triggers identified: "${critMatches.slice(0, 3).join(', ')}"`);
+                }
+
+                // High match
+                const highMatches = riskVectors.high.filter(w => text.includes(w));
+                if (highMatches.length > 0) {
+                    riskScore += 25;
+                    reasons.push(`Structural/safety risk markers: "${highMatches.slice(0, 3).join(', ')}"`);
+                }
+
+                // Medium match
+                const medMatches = riskVectors.medium.filter(w => text.includes(w));
+                if (medMatches.length > 0 && critMatches.length === 0) {
+                    riskScore += 12;
+                    reasons.push(`Standard infrastructural disruption markers observed.`);
+                }
+
+                // 2. Citizen Urgency Weight
+                const urgencyWeights = { 'Low': 10, 'Medium': 25, 'High': 45, 'Critical': 60 };
+                riskScore += urgencyWeights[userSev] || 25;
+
+                // 3. Spatial Proximity Clustering (Cluster Anomaly Detection)
+                if (complaint.lat && complaint.lng && allComplaints.length > 0) {
+                    const nearby = allComplaints.filter(other => {
+                        if (other.id === complaint.id || !other.lat || !other.lng) return false;
+                        const dist = Math.hypot(other.lat - complaint.lat, other.lng - complaint.lng);
+                        return dist < 0.015; // roughly within 1.5 km
+                    });
+                    if (nearby.length > 0) {
+                        const clusterBoost = Math.min(25, nearby.length * 8);
+                        riskScore += clusterBoost;
+                        reasons.push(`Geospatial cluster anomaly: ${nearby.length} proximal incidents detected in this grid cell.`);
+                    }
+                }
+
+                // Cap between 5 and 100
+                const finalScore = Math.min(100, Math.max(8, riskScore));
+
+                // Determine Tier
+                let tier = 'Low';
+                if (finalScore >= 80) tier = 'Critical';
+                else if (finalScore >= 55) tier = 'High';
+                else if (finalScore >= 30) tier = 'Medium';
+
+                // Department mapping
+                const deptMap = {
+                    'Structural & Roads': 'Civil Engineering & Bridge Authority',
+                    'Water & Sewage': 'Hydro-Grid & Wastewater Division',
+                    'Power & Electrical Grid': 'High-Voltage Smart Grid Authority',
+                    'Sanitation & Hazardous Waste': 'Rapid Hazmat & Ecological Ops',
+                    'Public Safety & Hazards': 'Integrated Emergency Dispatch'
+                };
+
+                // SLA Calculation
+                const slaMap = {
+                    'Critical': 'Immediate (< 35 mins)',
+                    'High': 'Priority (< 2 hours)',
+                    'Medium': 'Scheduled (< 6 hours)',
+                    'Low': 'Routine (< 24 hours)'
+                };
+
+                return {
+                    score: finalScore,
+                    level: tier,
+                    department: deptMap[cat] || 'Metropolitan General Operations',
+                    sla: slaMap[tier] || 'Standard SLA',
+                    reasoning: reasons.length ? reasons.join('. ') + '.' : 'Standard algorithmic triage applied based on baseline parameters.',
+                    confidence: (88 + (finalScore % 11)).toFixed(1) + '%'
+                };
+            }
+        }
+
+        /**
+         * 3. 3D WEBGL ENGINE & FLIGHT SYSTEM (Unified with Incident Beacons)
+         * Three.js procedural city, flight path, morphing core, particle storms, and interactive 3D incident nodes!
+         */
+        class WebGLDigitalTwin {
+            constructor() {
+                this.canvas = document.getElementById('gl');
+                this.renderer = null;
+                this.scene = null;
+                this.camera = null;
+                this.path = null;
+                this.incidentGroup = null;
+                this.raycaster = new THREE.Raycaster();
+                this.mouse = new THREE.Vector2();
+                this.hoveredObject = null;
+                this.scrollGoal = 0;
+                this.scrollSmooth = 0;
+                this.velocity = 0;
+                this.clock = new THREE.Clock();
+                this.activeStation = 0;
+                this.init();
+            }
+
+            init() {
+                // Renderer setup
+                this.renderer = new THREE.WebGLRenderer({
+                    canvas: this.canvas,
+                    antialias: true,
+                    powerPreference: 'high-performance'
+                });
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.renderer.setSize(window.innerWidth, window.innerHeight, false);
+
+                // Scene & Fog
+                this.scene = new THREE.Scene();
+                const BG_COLOR = 0x06050d;
+                this.scene.background = new THREE.Color(BG_COLOR);
+                this.scene.fog = new THREE.FogExp2(BG_COLOR, 0.015);
+
+                // Camera
+                this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 800);
+
+                // 3D Spline Flight Path through Cyber Metropolis
+                this.path = new THREE.CatmullRomCurve3([
+                    new THREE.Vector3(0, 0, 10),
+                    new THREE.Vector3(0, 0, -20),
+                    new THREE.Vector3(12, 3, -55),
+                    new THREE.Vector3(-14, -2, -95),
+                    new THREE.Vector3(10, 4, -135),
+                    new THREE.Vector3(-8, 1, -175),
+                    new THREE.Vector3(0, 3, -215),
+                    new THREE.Vector3(0, 0, -260)
+                ]);
+
+                // Ground Cyber Grid Plane
+                const gridHelper = new THREE.GridHelper(600, 80, 0x67e8f9, 0x1f1938);
+                gridHelper.position.y = -18;
+                this.scene.add(gridHelper);
+
+                // Central Cognitive Core (Morphing Icosahedron inside rotating chrome gimbals)
+                this.createCognitiveCore();
+
+                // Procedural City Buildings & Cyber Pillars
+                this.createCitySkyline();
+
+                // Particle Atmospheric Cloud (9,000 points)
+                this.createParticleField();
+
+                // Incident Beacon 3D Nodes Group
+                this.incidentGroup = new THREE.Group();
+                this.scene.add(this.incidentGroup);
+
+                // Event Listeners
+                window.addEventListener('resize', () => this.onResize());
+                window.addEventListener('pointermove', (e) => this.onPointerMove(e));
+                window.addEventListener('click', () => this.onClick());
+
+                // Start Render Loop
+                this.animate();
+            }
+
+            createCognitiveCore() {
+                this.coreGroup = new THREE.Group();
+                
+                // Chrome ring
+                const ringGeo = new THREE.TorusGeometry(3.6, 0.28, 32, 120);
+                const chromeMat = new THREE.MeshBasicMaterial({ color: 0x67e8f9, wireframe: true });
+                this.outerRing = new THREE.Mesh(ringGeo, chromeMat);
+                
+                // Inner morphing orb
+                const orbGeo = new THREE.IcosahedronGeometry(2, 4);
+                const orbMat = new THREE.MeshBasicMaterial({ color: 0xf0abfc, wireframe: true });
+                this.innerOrb = new THREE.Mesh(orbGeo, orbMat);
+                
+                this.coreGroup.add(this.outerRing);
+                this.coreGroup.add(this.innerOrb);
+                this.coreGroup.position.set(4, 1, -6);
+                this.scene.add(this.coreGroup);
+            }
+
+            createCitySkyline() {
+                const geom = new THREE.BoxGeometry(1, 1, 1);
+                const mat = new THREE.MeshBasicMaterial({ color: 0x1a163a, wireframe: false });
+                const wireMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true });
+
+                for (let i = 0; i < 90; i++) {
+                    const h = 10 + Math.random() * 45;
+                    const w = 4 + Math.random() * 8;
+                    const u = Math.random();
+                    const pt = this.path.getPointAt(u);
+                    const side = (Math.random() > 0.5 ? 1 : -1) * (14 + Math.random() * 25);
+                    
+                    const building = new THREE.Mesh(geom, (i % 3 === 0) ? wireMat : mat);
+                    building.scale.set(w, h, w);
+                    building.position.set(pt.x + side, -18 + h / 2, pt.z + (Math.random() - 0.5) * 15);
+                    this.scene.add(building);
+                }
+            }
+
+            createParticleField() {
+                const count = 7500;
+                const pos = new Float32Array(count * 3);
+                const colors = new Float32Array(count * 3);
+                const palette = [new THREE.Color('#67e8f9'), new THREE.Color('#f0abfc'), new THREE.Color('#38bdf8')];
+
+                for (let i = 0; i < count; i++) {
+                    const u = Math.random();
+                    const pt = this.path.getPointAt(u);
+                    const spread = 28;
+                    pos[i * 3] = pt.x + (Math.random() - 0.5) * spread;
+                    pos[i * 3 + 1] = pt.y + (Math.random() - 0.5) * spread;
+                    pos[i * 3 + 2] = pt.z + (Math.random() - 0.5) * spread;
+
+                    const c = palette[i % 3];
+                    c.toArray(colors, i * 3);
+                }
+
+                const geo = new THREE.BufferGeometry();
+                geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+                geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+                const mat = new THREE.PointsMaterial({
+                    size: 0.5,
+                    vertexColors: true,
+                    transparent: true,
+                    opacity: 0.6,
+                    blending: THREE.AdditiveBlending
+                });
+
+                this.particlePoints = new THREE.Points(geo, mat);
+                this.scene.add(this.particlePoints);
+            }
+
+            // Sync 3D Beacons with Active Civic Complaints
+            syncIncidentBeacons(incidents) {
+                // Clear existing
+                while (this.incidentGroup.children.length > 0) {
+                    this.incidentGroup.remove(this.incidentGroup.children[0]);
+                }
+
+                incidents.forEach((inc, idx) => {
+                    const u = 0.12 + (idx % 7) * 0.11;
+                    const pt = this.path.getPointAt(u);
+                    const tan = this.path.getTangentAt(u);
+                    const normal = new THREE.Vector3(-tan.z, 0, tan.x).normalize();
+                    const side = (idx % 2 === 0 ? 1 : -1) * 4.5;
+                    const pos = pt.clone().addScaledVector(normal, side);
+                    pos.y += Math.sin(idx) * 1.5;
+
+                    const beaconGroup = new THREE.Group();
+                    beaconGroup.position.copy(pos);
+
+                    // Color based on severity
+                    let col = 0x38bdf8;
+                    if (inc.ai?.level === 'Critical') col = 0xff3366;
+                    else if (inc.ai?.level === 'High') col = 0xf59e0b;
+                    else if (inc.status === 'Resolved') col = 0x10b981;
+
+                    // Core pulsing sphere
+                    const sphere = new THREE.Mesh(
+                        new THREE.SphereGeometry(0.7, 16, 16),
+                        new THREE.MeshBasicMaterial({ color: col, wireframe: true })
+                    );
+                    beaconGroup.add(sphere);
+
+                    // Orbiting ring
+                    const ring = new THREE.Mesh(
+                        new THREE.TorusGeometry(1.4, 0.06, 8, 32),
+                        new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.8 })
+                    );
+                    ring.rotation.x = Math.PI / 2;
+                    beaconGroup.add(ring);
+
+                    beaconGroup.userData = {
+                        incident: inc,
+                        ringMesh: ring,
+                        sphereMesh: sphere,
+                        baseY: pos.y,
+                        index: idx
+                    };
+
+                    this.incidentGroup.add(beaconGroup);
+                });
+            }
+
+            onResize() {
+                if (!this.renderer || !this.camera) return;
+                this.renderer.setSize(window.innerWidth, window.innerHeight, false);
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+            }
+
+            onPointerMove(e) {
+                this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+                // Raycast in 3D Digital Twin mode
+                if (app.currentMode === 'twin' && this.incidentGroup && this.incidentGroup.children.length > 0) {
+                    this.raycaster.setFromCamera(this.mouse, this.camera);
+                    const meshes = [];
+                    this.incidentGroup.children.forEach(grp => {
+                        grp.children.forEach(c => meshes.push(c));
+                    });
+
+                    const hits = this.raycaster.intersectObjects(meshes);
+                    const hoverCard = document.getElementById('incident-hover-card');
+
+                    if (hits.length > 0) {
+                        const parentGrp = hits[0].object.parent;
+                        this.hoveredObject = parentGrp;
+                        document.body.style.cursor = 'pointer';
+
+                        const inc = parentGrp.userData.incident;
+                        if (inc) {
+                            hoverCard.style.display = 'block';
+                            hoverCard.style.left = e.clientX + 'px';
+                            hoverCard.style.top = e.clientY + 'px';
+                            document.getElementById('hover-title').textContent = inc.title;
+                            document.getElementById('hover-desc').textContent = inc.desc.substring(0, 80) + '...';
+                            const badge = document.getElementById('hover-badge');
+                            badge.textContent = inc.ai?.level || 'Active';
+                            badge.className = `badge badge-${(inc.ai?.level || 'medium').toLowerCase()}`;
+                        }
+                    } else {
+                        this.hoveredObject = null;
+                        document.body.style.cursor = 'default';
+                        hoverCard.style.display = 'none';
+                    }
+                }
+            }
+
+            onClick() {
+                if (this.hoveredObject && this.hoveredObject.userData?.incident) {
+                    soundEngine.playPing();
+                    app.showModal(this.hoveredObject.userData.incident.id);
+                }
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+
+                const time = this.clock.getElapsedTime();
+
+                // Compute smooth flight scroll
+                const track = document.getElementById('track');
+                const maxScroll = track ? (track.scrollHeight - window.innerHeight) : 1000;
+                const scrollY = window.scrollY || window.pageYOffset || 0;
+                const targetU = Math.max(0, Math.min(1, scrollY / (maxScroll || 1)));
+
+                const prev = this.scrollSmooth;
+                this.scrollSmooth += (targetU - this.scrollSmooth) * 0.055;
+                this.velocity = Math.abs(this.scrollSmooth - prev) * 60;
+
+                const u = this.scrollSmooth * 0.985;
+
+                // Move camera along spline
+                const camPt = this.path.getPointAt(u);
+                const ahead = this.path.getPointAt(Math.min(1, u + 0.015));
+                const tangent = this.path.getTangentAt(u);
+                const side = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+
+                // Smooth mouse banking
+                const mx = this.mouse.x * 1.5;
+                const my = this.mouse.y * 1.0;
+                this.camera.position.set(camPt.x + side.x * mx, camPt.y + my, camPt.z + side.z * mx);
+                this.camera.lookAt(ahead.x + side.x * mx * 0.5, ahead.y, ahead.z + side.z * mx * 0.5);
+
+                // Rotate Cognitive Core
+                if (this.outerRing && this.innerOrb) {
+                    this.outerRing.rotation.x = time * 0.4;
+                    this.outerRing.rotation.y = time * 0.6;
+                    this.innerOrb.rotation.y = time * 0.25;
+                }
+
+                // Animate 3D Incident Beacons
+                if (this.incidentGroup) {
+                    this.incidentGroup.children.forEach(grp => {
+                        const { ringMesh, sphereMesh, baseY, index } = grp.userData;
+                        grp.position.y = baseY + Math.sin(time * 2 + index) * 0.3;
+                        if (ringMesh) ringMesh.rotation.z += 0.02;
+                        if (sphereMesh) sphereMesh.rotation.y += 0.015;
+                    });
+                }
+
+                // Update HUD Telemetry
+                const altElem = document.getElementById('cam-alt');
+                const velElem = document.getElementById('cam-vel');
+                const syncElem = document.getElementById('sync-pct');
+                const bar = document.getElementById('progress-bar-3d');
+                if (altElem) altElem.textContent = (80 + camPt.y * 2.5).toFixed(1) + 'm';
+                if (velElem) velElem.textContent = (this.velocity * 12).toFixed(1) + ' km/h';
+                if (syncElem) syncElem.textContent = (99.4 + Math.sin(time) * 0.5).toFixed(1) + '%';
+                if (bar) bar.style.width = (u * 100).toFixed(1) + '%';
+
+                // Stations & Dots
+                const stationIndex = Math.min(7, Math.floor(u * 8));
+                if (stationIndex !== this.activeStation) {
+                    this.activeStation = stationIndex;
+                    const stationNames = [
+                        'NEURAL CORE NEXUS', 'INERA STRUCTURE SPINE', 'HYDRO NETWORK CELL',
+                        'SMART GRID SUBSTATION', 'TRANSIT HYPERLOOP', 'ECOLOGICAL CORRIDOR',
+                        'HAZARD CONTAINMENT ZONE', 'METROPOLITAN TERMINAL'
+                    ];
+                    const stationElem = document.getElementById('twin-station-name');
+                    if (stationElem) stationElem.textContent = stationNames[stationIndex];
+
+                    document.querySelectorAll('.station-dot').forEach((d, i) => {
+                        d.classList.toggle('active', i === stationIndex);
+                    });
+                }
+
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        /**
+         * 4. MAIN CIVICMIND APP CONTROLLER
+         * Manages Auth, Storage, Dual Viewports, Leaflet Maps, Vision Scanner, Dictation & Admin
+         */
+        class CivicMindApp {
+            constructor() {
+                this.STORAGE_KEY = 'CIVICMIND_3D_DATA_V3';
+                this.currentMode = 'twin'; // 'twin' or 'command'
+                this.submitMap = null;
+                this.submitMarker = null;
+                this.tacticalMap = null;
+                this.tacticalMarkers = [];
+                this.modalMap = null;
+                this.charts = {};
+                this.speechRec = null;
+                this.isRecording = false;
+                this.twin = null;
+                this.init();
+            }
+
+            init() {
+                // Seed initial data if empty
+                if (!localStorage.getItem(this.STORAGE_KEY)) {
+                    this.seedData();
+                }
+
+                // Start 3D Engine
+                this.twin = new WebGLDigitalTwin();
+                this.twin.syncIncidentBeacons(this.getAll());
+
+                // Setup Voice Recognition
+                this.initSpeech();
+
+                // Setup Maps
+                this.initSubmitMap();
+
+                // Render Overview
+                this.renderAll();
+
+                // Periodic IoT Telemetry Simulator
+                setInterval(() => this.cycleIoTSensors(), 4000);
+            }
+
+            seedData() {
+                const samples = [
+                    {
+                        id: 'CIV-101',
+                        title: 'High-Pressure Water Main Fracture',
+                        desc: 'Sub-surface distribution pipe ruptured creating significant street flooding and road subsidence risk.',
+                        category: 'Water & Sewage',
+                        urgency: 'Critical',
+                        location: 'Grand Cyber Plaza, Sector 4',
+                        lat: 40.7138,
+                        lng: -74.0045,
+                        status: 'Unit Dispatched',
+                        crew: 'Crew Gamma-2 (Sanitation & Water)',
+                        date: new Date(Date.now() - 3600000).toLocaleString()
+                    },
+                    {
+                        id: 'CIV-102',
+                        title: 'Structural Fissure on Overpass Flyover',
+                        desc: 'Thermal expansion crack propagating across load-bearing abutment B4. Vibration meters registering anomalies.',
+                        category: 'Structural & Roads',
+                        urgency: 'High',
+                        location: 'Metropolitan Flyover, Abutment B4',
+                        lat: 40.7165,
+                        lng: -74.0080,
+                        status: 'In Progress',
+                        crew: 'Crew Beta-4 (Heavy Civil Repairs)',
+                        date: new Date(Date.now() - 7200000).toLocaleString()
+                    },
+                    {
+                        id: 'CIV-103',
+                        title: 'High-Voltage Cable Severed near School',
+                        desc: 'Downed power distribution cable sparking intermittently near pedestrian boulevard. Immediate safety perimeter required.',
+                        category: 'Power & Electrical Grid',
+                        urgency: 'Critical',
+                        location: 'Lexington Tech District, Block 12',
+                        lat: 40.7110,
+                        lng: -74.0020,
+                        status: 'Submitted',
+                        crew: 'Crew Delta-9 (High Voltage Power)',
+                        date: new Date(Date.now() - 1800000).toLocaleString()
+                    },
+                    {
+                        id: 'CIV-104',
+                        title: 'Hazardous Chemical Runoff in Drain',
+                        desc: 'Iridescent chemical sludge observed discharging into storm drainage canal. Foul vapors reported by residents.',
+                        category: 'Sanitation & Hazardous Waste',
+                        urgency: 'High',
+                        location: 'Industrial Canal, Dock 08',
+                        lat: 40.7180,
+                        lng: -74.0110,
+                        status: 'AI Triaged',
+                        crew: 'Crew Alpha-1 (Emergency Hazmat)',
+                        date: new Date(Date.now() - 9000000).toLocaleString()
+                    },
+                    {
+                        id: 'CIV-105',
+                        title: 'Pedestrian Signal Grid Malfunction',
+                        desc: 'Crosswalk smart sensors displaying conflicting green intervals causing near-miss pedestrian collisions.',
+                        category: 'Public Safety & Hazards',
+                        urgency: 'Medium',
+                        location: '7th Avenue & Broadway Cross',
+                        lat: 40.7150,
+                        lng: -74.0050,
+                        status: 'Resolved',
+                        crew: 'Crew Beta-4 (Heavy Civil Repairs)',
+                        date: new Date(Date.now() - 25000000).toLocaleString()
+                    }
+                ];
+
+                // Run each through CognitiveAI
+                samples.forEach(s => {
+                    s.ai = CognitiveAI3.analyze(s, samples);
+                });
+
+                localStorage.setItem(this.STORAGE_KEY, JSON.stringify(samples));
+            }
+
+            getAll() {
+                try {
+                    return JSON.parse(localStorage.getItem(this.STORAGE_KEY)) || [];
+                } catch(e) {
+                    return [];
+                }
+            }
+
+            saveAll(data) {
+                localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+                if (this.twin) this.twin.syncIncidentBeacons(data);
+                this.renderAll();
+            }
+
+            /* View Mode Toggle: 3D Twin vs Command Center */
+            setMode(mode) {
+                this.currentMode = mode;
+                soundEngine.playClick();
+                const btnTwin = document.getElementById('btn-mode-twin');
+                const btnCmd = document.getElementById('btn-mode-cmd');
+                const twinCont = document.getElementById('twin-view-container');
+                const cmdCont = document.getElementById('command-view-container');
+                const glCanvas = document.getElementById('gl');
+
+                if (mode === 'twin') {
+                    btnTwin.classList.add('active');
+                    btnCmd.classList.remove('active');
+                    twinCont.style.display = 'block';
+                    cmdCont.style.display = 'none';
+                    glCanvas.style.opacity = '1';
+                    glCanvas.style.filter = 'none';
+                } else {
+                    btnCmd.classList.add('active');
+                    btnTwin.classList.remove('active');
+                    twinCont.style.display = 'none';
+                    cmdCont.style.display = 'block';
+                    glCanvas.style.opacity = '0.35';
+                    glCanvas.style.filter = 'blur(6px)';
+                    this.switchTab('overview');
+                }
+            }
+
+            /* Sub-Tab Navigation */
+            switchTab(tabId) {
+                soundEngine.playClick();
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.cmd-section').forEach(s => s.classList.remove('active'));
+
+                const targetSec = document.getElementById(`tab-${tabId}`);
+                if (targetSec) targetSec.classList.add('active');
+
+                // Highlight active button
+                const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => 
+                    b.getAttribute('onclick')?.includes(tabId)
+                );
+                if (activeBtn) activeBtn.classList.add('active');
+
+                // Leaflet Map Invalidation Fix: Always resize maps when tab opens!
+                if (tabId === 'submit') {
+                    setTimeout(() => {
+                        if (this.submitMap) this.submitMap.invalidateSize();
+                    }, 120);
+                } else if (tabId === 'map-explorer') {
+                    setTimeout(() => {
+                        this.initTacticalMap();
+                        if (this.tacticalMap) this.tacticalMap.invalidateSize();
+                    }, 120);
+                } else if (tabId === 'analytics') {
+                    setTimeout(() => this.renderCharts(), 100);
+                }
+            }
+
+            jumpToStation(index) {
+                soundEngine.playPing();
+                const track = document.getElementById('track');
+                const max = track.scrollHeight - window.innerHeight;
+                window.scrollTo({
+                    top: (index / 7.2) * max,
+                    behavior: 'smooth'
+                });
+            }
+
+            inspectHovered() {
+                if (this.twin?.hoveredObject?.userData?.incident) {
+                    const inc = this.twin.hoveredObject.userData.incident;
+                    this.setMode('command');
+                    this.showModal(inc.id);
+                }
+            }
+
+            /* Exact Leaflet Map Locator */
+            initSubmitMap() {
+                if (this.submitMap) return;
+                const defaultLat = 40.7128;
+                const defaultLng = -74.0060;
+
+                this.submitMap = L.map('submit-map', {
+                    zoomControl: true,
+                    attributionControl: false
+                }).setView([defaultLat, defaultLng], 14);
+
+                // CartoDB Dark Matter Cyberpunk Tiles
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    maxZoom: 19
+                }).addTo(this.submitMap);
+
+                // Custom Neon SVG Marker
+                const neonIcon = L.divIcon({
+                    className: 'custom-pin',
+                    html: `<div style="width:20px; height:20px; background:#67e8f9; border:2px solid #fff; border-radius:50%; box-shadow:0 0 16px #67e8f9;"></div>`,
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                });
+
+                this.submitMarker = L.marker([defaultLat, defaultLng], {
+                    draggable: true,
+                    icon: neonIcon
+                }).addTo(this.submitMap);
+
+                // On Pin Drag
+                this.submitMarker.on('dragend', (e) => {
+                    const pos = e.target.getLatLng();
+                    this.updateCoords(pos.lat, pos.lng);
+                });
+
+                // On Map Click
+                this.submitMap.on('click', (e) => {
+                    this.submitMarker.setLatLng(e.latlng);
+                    this.updateCoords(e.latlng.lat, e.latlng.lng);
+                    soundEngine.playClick();
+                });
+            }
+
+            updateCoords(lat, lng) {
+                document.getElementById('inc-lat').value = lat.toFixed(6);
+                document.getElementById('inc-lng').value = lng.toFixed(6);
+                document.getElementById('submit-coords-display').textContent = `LAT: ${lat.toFixed(4)}° N | LNG: ${lng.toFixed(4)}° W`;
+
+                // Polite Reverse Geocoding via OpenStreetMap or fallback
+                this.reverseGeocode(lat, lng);
+                this.triggerRealtimeAIPreview();
+            }
+
+            async reverseGeocode(lat, lng) {
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
+                        headers: { 'Accept-Language': 'en' }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.display_name) {
+                            const shortAddr = data.display_name.split(',').slice(0, 3).join(',');
+                            document.getElementById('inc-location-name').value = shortAddr;
+                            return;
+                        }
+                    }
+                } catch(e) {}
+                // Fallback to high-tech sector designation
+                document.getElementById('inc-location-name').value = `Metropolitan Sector ${Math.floor(lat * 100) % 20}-${Math.floor(Math.abs(lng) * 100) % 50}`;
+            }
+
+            /* "Locate My Exact Position" via HTML5 Geolocation */
+            locateExactUserGPS(flyOnTactical = false) {
+                soundEngine.playScan();
+                if (!navigator.geolocation) {
+                    alert("GPS Geolocation is not supported by your browser.");
+                    return;
+                }
+
+                const display = document.getElementById('submit-coords-display');
+                if (display) display.textContent = "ACQUIRING SATELLITE FIX...";
+
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        soundEngine.playPing();
+                        const lat = pos.coords.latitude;
+                        const lng = pos.coords.longitude;
+
+                        if (flyOnTactical && this.tacticalMap) {
+                            this.tacticalMap.flyTo([lat, lng], 15);
+                            L.circle([lat, lng], { radius: 150, color: '#67e8f9' }).addTo(this.tacticalMap).bindPopup("Your Exact Position").openPopup();
+                        } else if (this.submitMap && this.submitMarker) {
+                            this.submitMap.flyTo([lat, lng], 15);
+                            this.submitMarker.setLatLng([lat, lng]);
+                            this.updateCoords(lat, lng);
+                        }
+                    },
+                    (err) => {
+                        console.warn("GPS error:", err);
+                        // Fallback simulated exact coordinate
+                        const fallbackLat = 40.7128 + (Math.random() - 0.5) * 0.02;
+                        const fallbackLng = -74.0060 + (Math.random() - 0.5) * 0.02;
+                        if (this.submitMap && this.submitMarker) {
+                            this.submitMap.flyTo([fallbackLat, fallbackLng], 15);
+                            this.submitMarker.setLatLng([fallbackLat, fallbackLng]);
+                            this.updateCoords(fallbackLat, fallbackLng);
+                        }
+                    },
+                    { enableHighAccuracy: true, timeout: 6000 }
+                );
+            }
+
+            /* Tactical Metropolitan Map Explorer */
+            initTacticalMap() {
+                if (!this.tacticalMap) {
+                    this.tacticalMap = L.map('tactical-map', {
+                        attributionControl: false
+                    }).setView([40.7140, -74.0065], 14);
+
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                        maxZoom: 19
+                    }).addTo(this.tacticalMap);
+                }
+
+                // Clear markers
+                this.tacticalMarkers.forEach(m => this.tacticalMap.removeLayer(m));
+                this.tacticalMarkers = [];
+
+                const data = this.getAll();
+                data.forEach(inc => {
+                    if (!inc.lat || !inc.lng) return;
+
+                    let pinColor = '#38bdf8';
+                    if (inc.ai?.level === 'Critical') pinColor = '#ff3366';
+                    else if (inc.ai?.level === 'High') pinColor = '#f59e0b';
+                    else if (inc.status === 'Resolved') pinColor = '#10b981';
+
+                    const icon = L.divIcon({
+                        className: 'tactical-pin',
+                        html: `<div style="width:16px; height:16px; background:${pinColor}; border:2px solid #fff; border-radius:50%; box-shadow:0 0 14px ${pinColor};"></div>`,
+                        iconSize: [16, 16],
+                        iconAnchor: [8, 8]
+                    });
+
+                    const marker = L.marker([inc.lat, inc.lng], { icon }).addTo(this.tacticalMap);
+                    marker.bindPopup(`
+                        <div style="background:#0e0c20; color:#fff; padding:6px; font-family:'Inter';">
+                            <span class="badge badge-${(inc.ai?.level || 'medium').toLowerCase()}">${inc.ai?.level || 'Incident'}</span>
+                            <strong style="display:block; margin:6px 0; font-family:'Orbitron'; font-size:0.85rem;">${inc.title}</strong>
+                            <p style="font-size:0.75rem; color:#ccc;">${inc.location}</p>
+                            <button onclick="app.showModal('${inc.id}')" style="margin-top:8px; padding:4px 10px; background:#67e8f9; color:#000; border:none; border-radius:6px; font-weight:700; cursor:pointer;">Inspect Dossier</button>
+                        </div>
+                    `);
+                    marker.incidentData = inc;
+                    this.tacticalMarkers.push(marker);
+                });
+            }
+
+            filterMapMarkers(level) {
+                soundEngine.playClick();
+                if (!this.tacticalMap) return;
+                this.tacticalMarkers.forEach(m => {
+                    const inc = m.incidentData;
+                    if (level === 'all' || inc.ai?.level === level) {
+                        this.tacticalMap.addLayer(m);
+                    } else {
+                        this.tacticalMap.removeLayer(m);
+                    }
+                });
+            }
+
+            /* AI Computer Vision Hazard Scanner */
+            handleImageUpload(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    this.runVisionScan(event.target.result, file.name);
+                };
+                reader.readAsDataURL(file);
+            }
+
+            loadSampleImage(type) {
+                soundEngine.playClick();
+                const sampleMap = {
+                    crack: {
+                        url: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='300' viewBox='0 0 600 300'><rect width='600' height='300' fill='%231a162b'/><path d='M100 280 L220 180 L200 130 L380 70 L340 20' stroke='%23ff3366' stroke-width='6' fill='none'/><circle cx='220' cy='180' r='12' fill='none' stroke='%2367e8f9' stroke-width='2'/><text x='20' y='40' fill='%2367e8f9' font-size='18' font-family='monospace'>EVIDENCE: CONCRETE SHEAR FRACTURE</text></svg>",
+                        title: "Sub-Structural Shear Fracture in Overpass",
+                        cat: "Structural & Roads",
+                        desc: "Visual telemetry identifies propagating tensile fracture across primary concrete pier. Surface spalling and rebar exposure evident.",
+                        urgency: "Critical"
+                    },
+                    pipe: {
+                        url: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='300' viewBox='0 0 600 300'><rect width='600' height='300' fill='%230f1b2b'/><circle cx='300' cy='150' r='80' fill='%2338bdf8' opacity='0.6'/><path d='M220 150 L380 150' stroke='%23fff' stroke-width='8'/><text x='20' y='40' fill='%2338bdf8' font-size='18' font-family='monospace'>EVIDENCE: PRESSURIZED WATER RUPTURE</text></svg>",
+                        title: "Pressurized Water Main Rupture with Flooding",
+                        cat: "Water & Sewage",
+                        desc: "Autonomous vision scan detects severe fluid dispersion under high pressure. Roadway asphalt buckling observed.",
+                        urgency: "Critical"
+                    },
+                    wire: {
+                        url: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='300' viewBox='0 0 600 300'><rect width='600' height='300' fill='%23221226'/><path d='M80 80 L280 200 L240 220 L500 270' stroke='%23f59e0b' stroke-width='6' fill='none'/><circle cx='280' cy='200' r='20' fill='%23ff3366' opacity='0.8'/><text x='20' y='40' fill='%23f59e0b' font-size='18' font-family='monospace'>EVIDENCE: DOWNED HIGH-VOLTAGE CONDUCTOR</text></svg>",
+                        title: "Downed High-Voltage Conductor with Arcing",
+                        cat: "Power & Electrical Grid",
+                        desc: "Thermal anomaly and severed 13.8kV electrical conductor located along pedestrian right-of-way. Urgent shutdown necessary.",
+                        urgency: "Critical"
+                    }
+                };
+
+                const sample = sampleMap[type];
+                if (sample) {
+                    this.runVisionScan(sample.url, sample.title, sample);
+                }
+            }
+
+            runVisionScan(imgUrl, label, autoFillData = null) {
+                soundEngine.playScan();
+                const previewWrap = document.getElementById('vision-preview-wrap');
+                const previewImg = document.getElementById('vision-preview-img');
+                const laser = document.getElementById('laser-line');
+                const hudTag = document.getElementById('vision-hud-tag');
+                const idle = document.getElementById('vision-idle-state');
+
+                idle.style.display = 'none';
+                previewWrap.style.display = 'block';
+                previewImg.src = imgUrl;
+                laser.style.display = 'block';
+                hudTag.textContent = "AI VISION SCANNING...";
+
+                setTimeout(() => {
+                    laser.style.display = 'none';
+                    hudTag.textContent = `ANOMALY DETECTED: 98.4% CONFIDENCE`;
+                    soundEngine.playPing();
+
+                    if (autoFillData) {
+                        document.getElementById('inc-title').value = autoFillData.title;
+                        document.getElementById('inc-category').value = autoFillData.cat;
+                        document.getElementById('inc-desc').value = autoFillData.desc;
+                        document.getElementById('inc-urgency').value = autoFillData.urgency;
+                    } else {
+                        document.getElementById('inc-title').value = `Visual Hazard Anomaly: ${label.replace(/\.[^/.]+$/, "")}`;
+                        document.getElementById('inc-desc').value = `Computer vision engine extracted hazard markers from uploaded evidence [${label}]. Verified structural compromise.`;
+                    }
+                    this.triggerRealtimeAIPreview();
+                }, 1600);
+            }
+
+            /* Voice Dictation via Web Speech API */
+            initSpeech() {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (SpeechRecognition) {
+                    this.speechRec = new SpeechRecognition();
+                    this.speechRec.continuous = false;
+                    this.speechRec.interimResults = true;
+                    this.speechRec.lang = 'en-US';
+
+                    this.speechRec.onstart = () => {
+                        this.isRecording = true;
+                        document.getElementById('voice-record-btn').classList.add('recording');
+                        document.getElementById('voice-wave').style.display = 'flex';
+                        document.getElementById('voice-status-text').textContent = "Listening... Speak incident details now.";
+                        soundEngine.playPing();
+                    };
+
+                    this.speechRec.onresult = (e) => {
+                        const transcript = Array.from(e.results)
+                            .map(r => r[0].transcript)
+                            .join('');
+                        const descBox = document.getElementById('inc-desc');
+                        descBox.value = transcript;
+                        this.triggerRealtimeAIPreview();
+                    };
+
+                    this.speechRec.onerror = () => {
+                        this.stopVoice();
+                    };
+
+                    this.speechRec.onend = () => {
+                        this.stopVoice();
+                    };
+                }
+            }
+
+            toggleVoiceDictation() {
+                if (!this.speechRec) {
+                    alert("Web Speech Dictation is not supported in this browser. Please use Chrome or Edge.");
+                    return;
+                }
+                if (this.isRecording) {
+                    this.speechRec.stop();
+                } else {
+                    this.speechRec.start();
+                }
+            }
+
+            stopVoice() {
+                this.isRecording = false;
+                const btn = document.getElementById('voice-record-btn');
+                const wave = document.getElementById('voice-wave');
+                const status = document.getElementById('voice-status-text');
+                if (btn) btn.classList.remove('recording');
+                if (wave) wave.style.display = 'none';
+                if (status) status.textContent = "Voice input captured. AI processing complete.";
+            }
+
+            /* Live Predictive AI Assessment Preview */
+            triggerRealtimeAIPreview() {
+                const title = document.getElementById('inc-title')?.value || '';
+                const desc = document.getElementById('inc-desc')?.value || '';
+                const cat = document.getElementById('inc-category')?.value || 'Structural & Roads';
+                const urgency = document.getElementById('inc-urgency')?.value || 'Medium';
+
+                const temp = { title, desc, cat, urgency, lat: 40.7128, lng: -74.0060 };
+                const analysis = CognitiveAI3.analyze(temp, this.getAll());
+
+                const badge = document.getElementById('preview-priority-badge');
+                const score = document.getElementById('preview-risk-score');
+                const dept = document.getElementById('preview-dept');
+                const sla = document.getElementById('preview-sla');
+                const reasoning = document.getElementById('preview-reasoning');
+
+                if (badge) {
+                    badge.textContent = `PREDICTED: ${analysis.level}`;
+                    badge.className = `badge badge-${analysis.level.toLowerCase()}`;
+                }
+                if (score) score.textContent = `${analysis.score} / 100`;
+                if (dept) dept.textContent = analysis.department;
+                if (sla) sla.textContent = analysis.sla;
+                if (reasoning) reasoning.textContent = analysis.reasoning;
+            }
+
+            /* Populate Demo Data in Form */
+            populateDemoForm() {
+                soundEngine.playClick();
+                document.getElementById('inc-title').value = "Overhead Monorail Beam Micro-Fracture";
+                document.getElementById('inc-category').value = "Structural & Roads";
+                document.getElementById('inc-desc').value = "Ultrasonic sensors register hairline structural fatigue along the steel guideway near 4th Terminal. Risk of high-speed transit vibration compounding failure.";
+                document.getElementById('inc-urgency').value = "High";
+                document.getElementById('inc-location-name').value = "Terminal 4 Hyperloop Junction";
+                this.updateCoords(40.7155, -74.0035);
+                this.triggerRealtimeAIPreview();
+            }
+
+            /* Submit Incident */
+            submitIncident(e) {
+                e.preventDefault();
+                soundEngine.playAlert();
+
+                const title = document.getElementById('inc-title').value;
+                const desc = document.getElementById('inc-desc').value;
+                const category = document.getElementById('inc-category').value;
+                const urgency = document.getElementById('inc-urgency').value;
+                const location = document.getElementById('inc-location-name').value;
+                const lat = parseFloat(document.getElementById('inc-lat').value) || 40.7128;
+                const lng = parseFloat(document.getElementById('inc-lng').value) || -74.0060;
+
+                const newIncident = {
+                    id: 'CIV-' + Math.floor(1000 + Math.random() * 9000),
+                    title,
+                    desc,
+                    category,
+                    urgency,
+                    location,
+                    lat,
+                    lng,
+                    status: 'Submitted',
+                    crew: 'Unassigned (Awaiting AI Dispatch)',
+                    date: new Date().toLocaleString()
+                };
+
+                const all = this.getAll();
+                newIncident.ai = CognitiveAI3.analyze(newIncident, all);
+                all.unshift(newIncident);
+                this.saveAll(all);
+
+                alert(`Incident Dispatched to Grid!\nID: ${newIncident.id}\nAI Assessed Level: ${newIncident.ai.level}\nAssigned Dept: ${newIncident.ai.department}`);
+
+                // Reset form
+                e.target.reset();
+                document.getElementById('vision-preview-wrap').style.display = 'none';
+                document.getElementById('vision-idle-state').style.display = 'block';
+
+                // Navigate to track
+                document.getElementById('track-input-id').value = newIncident.id;
+                this.switchTab('track');
+                this.trackIncident();
+            }
+
+            /* Render All Views */
+            renderAll() {
+                this.renderOverview();
+                this.renderAdmin();
+                this.renderCharts();
+            }
+
+            renderOverview() {
+                const data = this.getAll();
+                const total = data.length;
+                const critical = data.filter(d => d.ai?.level === 'Critical').length;
+                const resolved = data.filter(d => d.status === 'Resolved').length;
+                const avgScore = total ? Math.round(data.reduce((a, b) => a + (b.ai?.score || 50), 0) / total) : 0;
+
+                const kpi = document.getElementById('stats-kpi-container');
+                if (kpi) {
+                    kpi.innerHTML = `
+                        <div class="stat-box">
+                            <div class="stat-label">Total Grid Incidents <span>METRIC 01</span></div>
+                            <div class="stat-value">${total}</div>
+                            <div class="stat-delta">● Live Database Synchronized</div>
+                        </div>
+                        <div class="stat-box critical">
+                            <div class="stat-label">Critical Threat Vectors <span>METRIC 02</span></div>
+                            <div class="stat-value" style="color:var(--neon-red)">${critical}</div>
+                            <div class="stat-delta" style="color:var(--neon-red)">▲ Autonomous Alert Active</div>
+                        </div>
+                        <div class="stat-box success">
+                            <div class="stat-label">Resolved & Neutralized <span>METRIC 03</span></div>
+                            <div class="stat-value" style="color:var(--neon-emerald)">${resolved}</div>
+                            <div class="stat-delta">✔ ${Math.round((resolved / (total || 1)) * 100)}% Clearance Rate</div>
+                        </div>
+                        <div class="stat-box warning">
+                            <div class="stat-label">City Hazard Index <span>METRIC 04</span></div>
+                            <div class="stat-value" style="color:var(--neon-amber)">${avgScore}<span style="font-size:1.1rem">/100</span></div>
+                            <div class="stat-delta">⚡ Weighted Cognitive Triage</div>
+                        </div>
+                    `;
+                }
+
+                const tbody = document.getElementById('overview-tbody');
+                if (tbody) {
+                    tbody.innerHTML = data.slice(0, 6).map(inc => `
+                        <tr>
+                            <td><strong style="color:var(--neon-teal); font-family:'Space Mono';">${inc.id}</strong></td>
+                            <td>
+                                <strong>${inc.title}</strong>
+                                <span style="display:block; font-size:0.72rem; color:var(--text-dim);">${inc.location}</span>
+                            </td>
+                            <td><span style="font-size:0.75rem;">${inc.category}</span></td>
+                            <td>
+                                <span class="badge badge-${(inc.ai?.level || 'medium').toLowerCase()}">
+                                    ${inc.ai?.level || 'Medium'} (${inc.ai?.score || 50})
+                                </span>
+                            </td>
+                            <td><span class="badge ${inc.status === 'Resolved' ? 'badge-resolved' : 'badge-low'}">${inc.status}</span></td>
+                            <td>
+                                <button class="btn btn-secondary" style="padding:4px 10px; font-size:0.7rem;" onclick="app.showModal('${inc.id}')">Inspect</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            }
+
+            renderAdmin() {
+                const tbody = document.getElementById('admin-tbody');
+                if (!tbody) return;
+                const data = this.getAll();
+
+                tbody.innerHTML = data.map(inc => `
+                    <tr>
+                        <td><strong style="color:var(--neon-teal); font-family:'Space Mono';">${inc.id}</strong></td>
+                        <td>
+                            <strong>${inc.title}</strong>
+                            <span style="display:block; font-size:0.7rem; color:var(--text-dim);">${inc.location} · ${inc.date}</span>
+                        </td>
+                        <td><span style="font-size:0.75rem; color:var(--neon-purple);">${inc.crew || 'Unassigned'}</span></td>
+                        <td>
+                            <span class="badge badge-${(inc.ai?.level || 'medium').toLowerCase()}">
+                                ${inc.ai?.level || 'Medium'}
+                            </span>
+                        </td>
+                        <td><span class="badge ${inc.status === 'Resolved' ? 'badge-resolved' : 'badge-low'}">${inc.status}</span></td>
+                        <td>
+                            <button class="btn btn-secondary" style="padding:4px 10px; font-size:0.7rem;" onclick="app.showModal('${inc.id}')">Dispatch / Edit</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            /* Filter Admin Table */
+            filterAdminTable() {
+                const search = (document.getElementById('admin-search-input')?.value || '').toLowerCase();
+                const cat = document.getElementById('admin-filter-category')?.value || 'ALL';
+                const status = document.getElementById('admin-filter-status')?.value || 'ALL';
+
+                const data = this.getAll();
+                const filtered = data.filter(inc => {
+                    const matchSearch = inc.title.toLowerCase().includes(search) || 
+                                        inc.id.toLowerCase().includes(search) || 
+                                        inc.location.toLowerCase().includes(search);
+                    const matchCat = (cat === 'ALL') || (inc.category === cat);
+                    const matchStatus = (status === 'ALL') || (inc.status === status);
+                    return matchSearch && matchCat && matchStatus;
+                });
+
+                const tbody = document.getElementById('admin-tbody');
+                if (tbody) {
+                    tbody.innerHTML = filtered.map(inc => `
+                        <tr>
+                            <td><strong style="color:var(--neon-teal); font-family:'Space Mono';">${inc.id}</strong></td>
+                            <td>
+                                <strong>${inc.title}</strong>
+                                <span style="display:block; font-size:0.7rem; color:var(--text-dim);">${inc.location}</span>
+                            </td>
+                            <td><span style="font-size:0.75rem; color:var(--neon-purple);">${inc.crew || 'Unassigned'}</span></td>
+                            <td>
+                                <span class="badge badge-${(inc.ai?.level || 'medium').toLowerCase()}">
+                                    ${inc.ai?.level || 'Medium'}
+                                </span>
+                            </td>
+                            <td><span class="badge ${inc.status === 'Resolved' ? 'badge-resolved' : 'badge-low'}">${inc.status}</span></td>
+                            <td>
+                                <button class="btn btn-secondary" style="padding:4px 10px; font-size:0.7rem;" onclick="app.showModal('${inc.id}')">Dispatch / Edit</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            }
+
+            /* Track Single Incident */
+            trackIncident() {
+                soundEngine.playClick();
+                const query = (document.getElementById('track-input-id')?.value || '').trim().toUpperCase();
+                const resContainer = document.getElementById('track-result-container');
+                if (!resContainer) return;
+
+                const data = this.getAll();
+                const inc = data.find(d => d.id.toUpperCase() === query);
+
+                if (!inc) {
+                    resContainer.innerHTML = `
+                        <div style="padding:30px; text-align:center; color:var(--neon-red); font-family:'Space Mono';">
+                            ⚠️ Incident ID [${query}] not found in metropolitan grid.
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Calculate active step in timeline
+                const steps = ['Submitted', 'AI Triaged', 'Unit Dispatched', 'In Progress', 'Resolved'];
+                const curIdx = steps.indexOf(inc.status) !== -1 ? steps.indexOf(inc.status) : 1;
+                const progressWidth = Math.round((curIdx / (steps.length - 1)) * 100);
+
+                resContainer.innerHTML = `
+                    <div style="border:1px solid var(--neon-teal); border-radius:18px; padding:24px; background:rgba(103,232,249,0.03);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <div>
+                                <span class="badge badge-${(inc.ai?.level || 'medium').toLowerCase()}">${inc.ai?.level} TIER</span>
+                                <h3 class="orbitron" style="font-size:1.15rem; margin-top:8px;">${inc.title}</h3>
+                            </div>
+                            <strong style="color:var(--neon-teal); font-family:'Space Mono';">${inc.id}</strong>
+                        </div>
+
+                        <!-- Stepper Component -->
+                        <div class="tracker-stepper">
+                            <div class="tracker-progress-line" style="width: ${progressWidth}%"></div>
+                            ${steps.map((st, i) => `
+                                <div class="step-node ${i < curIdx ? 'completed' : (i === curIdx ? 'current' : '')}">
+                                    <div class="step-circle">${i < curIdx ? '✔' : (i + 1)}</div>
+                                    <div class="step-label">${st}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <div class="form-grid-2" style="margin-top:20px;">
+                            <div>
+                                <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.6;">${inc.desc}</p>
+                                <div style="margin-top:10px; font-size:0.75rem;">
+                                    <div>Location: <strong>${inc.location}</strong></div>
+                                    <div>Reported: <strong>${inc.date}</strong></div>
+                                    <div>Response Crew: <strong>${inc.crew || 'Awaiting Dispatch'}</strong></div>
+                                </div>
+                            </div>
+                            <div class="ai-panel" style="background:rgba(255,255,255,0.03); padding:16px; border-radius:12px; border:1px solid var(--glass-border);">
+                                <strong class="orbitron" style="font-size:0.75rem; color:var(--neon-teal)">AI Triage Rationale</strong>
+                                <p style="font-size:0.76rem; color:var(--text-dim); margin-top:6px;">${inc.ai?.reasoning}</p>
+                                <div style="margin-top:10px; font-size:0.72rem; color:var(--neon-purple)">
+                                    SLA Target: ${inc.ai?.sla}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            /* Detailed Modal Inspector & Status Update */
+            showModal(id) {
+                soundEngine.playPing();
+                const inc = this.getAll().find(d => d.id === id);
+                if (!inc) return;
+
+                this.activeModalId = id;
+                const modal = document.getElementById('inspect-modal');
+                modal.style.display = 'flex';
+
+                document.getElementById('modal-title').textContent = inc.title;
+                document.getElementById('modal-id').textContent = `ID: ${inc.id} · Category: ${inc.category}`;
+                document.getElementById('modal-date').textContent = inc.date;
+                document.getElementById('modal-desc').textContent = inc.desc;
+                document.getElementById('modal-location').textContent = inc.location;
+                document.getElementById('modal-risk-score').textContent = `${inc.ai?.score || 50}/100`;
+                document.getElementById('modal-dept').textContent = inc.ai?.department || 'General Operations';
+                document.getElementById('modal-reasoning').textContent = inc.ai?.reasoning || 'Standard parameters.';
+                document.getElementById('modal-status-select').value = inc.status || 'Submitted';
+                document.getElementById('modal-crew-select').value = inc.crew || 'Crew Beta-4 (Heavy Civil Repairs)';
+
+                const badge = document.getElementById('modal-priority-badge');
+                badge.textContent = inc.ai?.level || 'MEDIUM';
+                badge.className = `badge badge-${(inc.ai?.level || 'medium').toLowerCase()}`;
+
+                // Mini Leaflet Map in Modal
+                setTimeout(() => {
+                    if (this.modalMap) {
+                        this.modalMap.remove();
+                    }
+                    this.modalMap = L.map('modal-map', { attributionControl: false, zoomControl: false })
+                        .setView([inc.lat || 40.7128, inc.lng || -74.0060], 15);
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(this.modalMap);
+                    L.marker([inc.lat || 40.7128, inc.lng || -74.0060]).addTo(this.modalMap);
+                    this.modalMap.invalidateSize();
+                }, 150);
+            }
+
+            saveModalChanges() {
+                soundEngine.playPing();
+                const id = this.activeModalId;
+                const all = this.getAll();
+                const inc = all.find(d => d.id === id);
+                if (inc) {
+                    inc.status = document.getElementById('modal-status-select').value;
+                    inc.crew = document.getElementById('modal-crew-select').value;
+                    this.saveAll(all);
+                    alert(`Grid Updated: Incident ${id} status set to [${inc.status}] and assigned to [${inc.crew}].`);
+                }
+                this.closeModal();
+            }
+
+            closeModal() {
+                document.getElementById('inspect-modal').style.display = 'none';
+            }
+
+            /* Export Database */
+            exportDatabase() {
+                soundEngine.playClick();
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.getAll(), null, 2));
+                const dlAnchor = document.createElement('a');
+                dlAnchor.setAttribute("href", dataStr);
+                dlAnchor.setAttribute("download", `CIVICMIND_GRID_${Date.now()}.json`);
+                dlAnchor.click();
+            }
+
+            resetDemoData() {
+                soundEngine.playClick();
+                if (confirm("Reset metropolitan grid to initial demo state?")) {
+                    localStorage.removeItem(this.STORAGE_KEY);
+                    this.seedData();
+                    this.renderAll();
+                    if (this.twin) this.twin.syncIncidentBeacons(this.getAll());
+                    alert("Grid reset to default sample state.");
+                }
+            }
+
+            /* Render Charts with Chart.js */
+            renderCharts() {
+                const data = this.getAll();
+
+                // 1. Categories
+                const cats = {};
+                data.forEach(d => cats[d.category] = (cats[d.category] || 0) + 1);
+
+                if (this.charts.cat) this.charts.cat.destroy();
+                const ctxCat = document.getElementById('chart-categories')?.getContext('2d');
+                if (ctxCat) {
+                    this.charts.cat = new Chart(ctxCat, {
+                        type: 'doughnut',
+                        data: {
+                            labels: Object.keys(cats),
+                            datasets: [{
+                                data: Object.values(cats),
+                                backgroundColor: ['#67e8f9', '#f0abfc', '#ff3366', '#f59e0b', '#38bdf8'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'bottom', labels: { color: '#ccc', font: { family: 'Space Mono', size: 10 } } }
+                            }
+                        }
+                    });
+                }
+
+                // 2. Status Bar
+                const statuses = {};
+                ['Submitted', 'AI Triaged', 'Unit Dispatched', 'In Progress', 'Resolved'].forEach(s => statuses[s] = 0);
+                data.forEach(d => {
+                    if (statuses[d.status] !== undefined) statuses[d.status]++;
+                    else statuses[d.status] = 1;
+                });
+
+                if (this.charts.status) this.charts.status.destroy();
+                const ctxStatus = document.getElementById('chart-status')?.getContext('2d');
+                if (ctxStatus) {
+                    this.charts.status = new Chart(ctxStatus, {
+                        type: 'bar',
+                        data: {
+                            labels: Object.keys(statuses),
+                            datasets: [{
+                                label: 'Incidents in Stage',
+                                data: Object.values(statuses),
+                                backgroundColor: '#67e8f9',
+                                borderRadius: 6
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: { ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                                x: { ticks: { color: '#ccc', font: { family: 'Space Mono', size: 9 } }, grid: { display: false } }
+                            },
+                            plugins: { legend: { display: false } }
+                        }
+                    });
+                }
+
+                // 3. Velocity Line
+                if (this.charts.vel) this.charts.vel.destroy();
+                const ctxVel = document.getElementById('chart-velocity')?.getContext('2d');
+                if (ctxVel) {
+                    this.charts.vel = new Chart(ctxVel, {
+                        type: 'line',
+                        data: {
+                            labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', 'Now'],
+                            datasets: [{
+                                label: 'Mean Triage-to-Dispatch (mins)',
+                                data: [42, 38, 25, 18, 14, 11, 8],
+                                borderColor: '#f0abfc',
+                                backgroundColor: 'rgba(240, 171, 252, 0.15)',
+                                fill: true,
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: { ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                                x: { ticks: { color: '#888' }, grid: { display: false } }
+                            },
+                            plugins: { legend: { labels: { color: '#ccc', font: { family: 'Space Mono' } } } }
+                        }
+                    });
+                }
+            }
+
+            /* IoT Sensor Data Fluctuations */
+            cycleIoTSensors() {
+                const aqi = document.getElementById('sensor-aqi');
+                const pwr = document.getElementById('sensor-power');
+                const wtr = document.getElementById('sensor-water');
+
+                if (aqi) {
+                    const val = 35 + Math.floor(Math.random() * 8);
+                    aqi.textContent = `${val} AQI · Optimal`;
+                }
+                if (pwr) {
+                    const val = (99.6 + Math.random() * 0.3).toFixed(1);
+                    pwr.textContent = `${val}% Load · Stable`;
+                }
+                if (wtr) {
+                    const val = (4.1 + Math.random() * 0.3).toFixed(1);
+                    wtr.textContent = `${val} Bar · Normal`;
+                }
+            }
+
+            /* Copilot Assistant */
+            openCopilot() {
+                soundEngine.playPing();
+                document.getElementById('copilot-drawer').style.display = 'flex';
+                document.getElementById('copilot-input').focus();
+            }
+
+            closeCopilot() {
+                document.getElementById('copilot-drawer').style.display = 'none';
+            }
+
+            sendCopilotMessage() {
+                const input = document.getElementById('copilot-input');
+                const text = (input.value || '').trim();
+                if (!text) return;
+
+                soundEngine.playClick();
+                const container = document.getElementById('copilot-messages');
+                
+                // Add user bubble
+                const userBubble = document.createElement('div');
+                userBubble.className = 'chat-bubble user';
+                userBubble.textContent = text;
+                container.appendChild(userBubble);
+                input.value = '';
+                container.scrollTop = container.scrollHeight;
+
+                // Simulate AI response
+                setTimeout(() => {
+                    soundEngine.playPing();
+                    const botBubble = document.createElement('div');
+                    botBubble.className = 'chat-bubble bot';
+
+                    const lower = text.toLowerCase();
+                    const data = this.getAll();
+                    const criticals = data.filter(d => d.ai?.level === 'Critical');
+
+                    if (lower.includes('critical') || lower.includes('hazard') || lower.includes('threat')) {
+                        botBubble.innerHTML = `⚠️ <strong>Grid Status:</strong> There are currently <strong>${criticals.length} Critical threats</strong> registered.<br>Top priority: <em>${criticals[0]?.title || 'None'}</em> in ${criticals[0]?.location || 'N/A'}. Emergency response units are actively allocated.`;
+                    } else if (lower.includes('status') || lower.includes('overview') || lower.includes('summary')) {
+                        botBubble.innerHTML = `📊 <strong>Telemetry Summary:</strong> Total Reports: ${data.length} | Resolved: ${data.filter(d => d.status === 'Resolved').length} | Mean AI Confidence: 94.2%. Grid telemetry operational.`;
+                    } else if (lower.includes('water') || lower.includes('pipe') || lower.includes('leak')) {
+                        botBubble.innerHTML = `💧 Hydro-sensor network indicates stable municipal water pressure at 4.2 Bar. One active water main break under repair in Sector 4.`;
+                    } else {
+                        botBubble.innerHTML = `🤖 Neural grid parsed query: "${text}". Dispatch algorithms indicate all metropolitan sectors are functioning within established safety envelopes. You can submit new reports or inspect field crews in the Admin Command Matrix.`;
+                    }
+
+                    container.appendChild(botBubble);
+                    container.scrollTop = container.scrollHeight;
+                }, 600);
+            }
+        }
+
+        // Initialize App
+        const app = new CivicMindApp();
+    </script>
+</body>
+</html>
